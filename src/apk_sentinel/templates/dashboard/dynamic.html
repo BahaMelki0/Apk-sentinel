@@ -1,0 +1,77 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Dynamic Evidence - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}Runtime Evidence{% endblock %}
+{% block heading %}Dynamic Evidence{% endblock %}
+
+{% block actions %}
+<a class="button primary" href="{{ url_for('proxy_lab') }}">Open Proxy Lab</a>
+<a class="button secondary" href="{{ url_for('proxy_repeater') }}">Open Repeater</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Case Runtime Evidence</h2>
+      <p class="muted">Live proxying is handled globally in Proxy Lab. Import relevant captures here when you want runtime traffic evidence attached to this APK case.</p>
+    </div>
+  </div>
+  <div class="proxy-grid">
+    <div class="proxy-card">
+      <h3>Workflow</h3>
+      <ol class="tight-list">
+        <li>Open Proxy Lab and create a proxy session.</li>
+        <li>Replay captured requests in Repeater when needed.</li>
+        <li>Capture traffic while exercising the app.</li>
+        <li>Export/import the capture here when it belongs to this case.</li>
+      </ol>
+    </div>
+    <form class="proxy-card" method="post" action="{{ url_for('import_dynamic_capture', case_id=case.id) }}" enctype="multipart/form-data">
+      <h3>Import Capture</h3>
+      <label>HAR / mitmproxy JSON<input class="search-input" type="file" name="capture" accept=".json,.har" required></label>
+      <button class="button primary" type="submit">Import Capture</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Case Captures</h2>
+  </div>
+  <div class="capture-stack">
+    {% for capture in case.dynamic.captures %}
+    <article class="capture-card">
+      <div class="capture-head">
+        <div>
+          <h3>{{ capture.source_name }}</h3>
+          <p class="muted">{{ capture.request_count }} requests - {{ capture.domain_count }} domains - {{ capture.cleartext_count }} cleartext</p>
+        </div>
+      </div>
+      <div class="capture-columns">
+        <div>
+          <strong>Top Domains</strong>
+          <ul class="tight-list">
+            {% for domain, count in capture.top_domains[:8] %}
+            <li>{{ domain }} <span>{{ count }}</span></li>
+            {% else %}
+            <li>No domains parsed.</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <strong>Methods</strong>
+          <pre class="mini-json">{{ capture.methods }}</pre>
+        </div>
+        <div>
+          <strong>Status Codes</strong>
+          <pre class="mini-json">{{ capture.statuses }}</pre>
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <p class="empty-text">No captures attached to this case yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

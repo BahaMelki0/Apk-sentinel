@@ -1,0 +1,278 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Proxy Lab - APK Sentinel{% endblock %}
+{% block eyebrow %}Runtime Workbench{% endblock %}
+{% block heading %}Proxy Lab{% endblock %}
+
+{% block content %}
+<section class="proxy-summary">
+  <div class="mini-stat {{ 'is-live' if lab.summary.running_sessions else '' }}">
+    <span>Listener</span>
+    <strong>{{ lab.summary.running_sessions }} active</strong>
+    <small>{{ lab.summary.active_proxies|join(', ') if lab.summary.active_proxies else 'No proxy running' }}</small>
+  </div>
+  <div class="mini-stat {{ 'is-hot' if lab.intercept_enabled else '' }}">
+    <span>Intercept</span>
+    <strong>{{ 'On' if lab.intercept_enabled else 'Off' }}</strong>
+    <small>{{ lab.summary.pending_count }} waiting</small>
+  </div>
+  <div class="mini-stat">
+    <span>Captured</span>
+    <strong>{{ lab.summary.live_request_count + lab.summary.saved_request_count }}</strong>
+    <small>{{ lab.summary.live_request_count }} live / {{ lab.summary.saved_request_count }} saved</small>
+  </div>
+  <div class="mini-stat {{ 'is-live' if lab.ca.exists else '' }}">
+    <span>TLS CA</span>
+    <strong>{{ 'Ready' if lab.ca.exists else 'Not set' }}</strong>
+    <small>{{ 'Download available' if lab.ca.exists else 'Generate when needed' }}</small>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Listener</h2>
+      <p class="muted">Standalone traffic capture for authorized testing. HTTP and trusted-CA HTTPS requests keep editable request and response proof; untrusted HTTPS falls back to CONNECT metadata.</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('proxy_repeater') }}">Open Repeater</a>
+  </div>
+  <div class="proxy-grid">
+    <form class="proxy-card" method="post" action="{{ url_for('create_proxy_session') }}">
+      <h3>Create Proxy Session</h3>
+      <label>Label<input class="search-input" name="label" placeholder="Onboarding traffic pass"></label>
+      <div class="two-col">
+        <label>Proxy Host<input class="search-input" name="proxy_host" value="{{ lab.settings.default_proxy_host }}"></label>
+        <label>Proxy Port<input class="search-input" name="proxy_port" value="{{ lab.settings.default_proxy_port }}"></label>
+      </div>
+      <label>Notes<textarea class="textarea-input" name="notes" placeholder="Device, account, scope, test path"></textarea></label>
+      <button class="button primary" type="submit">Create Session</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>TLS CA</h2>
+      <p class="muted">Local certificate authority for HTTPS interception. Install only on test browsers or devices you control, then restart the browser session.</p>
+    </div>
+    <span class="status-pill {{ 'intercept-on' if lab.ca.exists else 'muted-pill' }}">{{ 'ready' if lab.ca.exists else 'not generated' }}</span>
+  </div>
+  <div class="ca-grid">
+    <div class="ca-status">
+      <span>Certificate</span>
+      <strong>{{ 'Generated' if lab.ca.exists else 'Not generated' }}</strong>
+      {% if lab.ca.error %}<small class="error-text">{{ lab.ca.error }}</small>{% endif %}
+    </div>
+    <div class="ca-status">
+      <span>Subject</span>
+      <strong>{{ lab.ca.subject or 'APK Sentinel Local Testing CA' }}</strong>
+      {% if lab.ca.not_valid_after %}<small>Expires {{ lab.ca.not_valid_after[:10] }}</small>{% endif %}
+    </div>
+    <div class="ca-status wide">
+      <span>SHA-256 Fingerprint</span>
+      <code class="fingerprint">{{ lab.ca.fingerprint or 'Generate the CA to show the trust fingerprint.' }}</code>
+    </div>
+    <div class="ca-status wide">
+      <span>Android System Name</span>
+      <code class="fingerprint">{{ lab.ca.android_system_name or 'Generated after CA creation.' }}</code>
+    </div>
+    <div class="ca-actions">
+      <form method="post" action="{{ url_for('create_proxy_ca') }}">
+        <button class="button {{ 'secondary' if lab.ca.exists else 'primary' }}" type="submit">{{ 'Check CA' if lab.ca.exists else 'Generate CA' }}</button>
+      </form>
+    </div>
+    <div class="ca-download-grid">
+      {% for profile in lab.ca.profiles %}
+      <article class="download-card">
+        <div>
+          <strong>{{ profile.label }}</strong>
+          <small>{{ profile.description }}</small>
+          <code>{{ profile.download_name }}</code>
+        </div>
+        <a class="button secondary {{ 'disabled-link' if not lab.ca.exists else '' }}" href="{{ url_for('download_proxy_ca', profile=profile.id) }}">Download {{ profile.extension }}</a>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="panel sticky-action-panel">
+  <div class="panel-head">
+    <div>
+      <h2>Interceptor</h2>
+      <p class="muted">HTTP and decrypted HTTPS requests pause here until you forward or drop them. CONNECT pauses only when the CA is not available for HTTPS interception.</p>
+    </div>
+    <div class="intercept-controls">
+      <span class="status-pill {{ 'intercept-on' if lab.intercept_enabled else 'muted-pill' }}">Intercept {{ 'on' if lab.intercept_enabled else 'off' }}</span>
+      {% if lab.intercept_enabled %}
+      <form method="post" action="{{ url_for('set_proxy_intercept', state='off') }}">
+        <button class="button secondary" type="submit">Turn Intercept Off</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('set_proxy_intercept', state='on') }}">
+        <button class="button primary" type="submit">Turn Intercept On</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('forward_all_proxy_intercepts') }}">
+        <button class="button secondary" type="submit" {{ 'disabled' if not lab.pending_intercepts else '' }}>Forward All</button>
+      </form>
+    </div>
+  </div>
+  <div class="intercept-stack">
+    {% for pending in lab.pending_intercepts %}
+    <article class="intercept-card">
+      <div class="capture-head">
+        <div>
+          <h3>{{ pending.method }} {{ pending.path }}</h3>
+          <p class="muted">{{ pending.host }} - {{ pending.request_bytes|filesize }} body - {{ pending.proxy }}</p>
+        </div>
+        <span class="status-pill">paused</span>
+      </div>
+      <form method="post" action="{{ url_for('forward_proxy_intercept', request_id=pending.id) }}">
+        <label class="editor-label">Raw Request
+          <textarea class="editor-input intercept-editor" name="raw_request" spellcheck="false">{{ pending.raw_request_text }}</textarea>
+        </label>
+        <div class="intercept-actions">
+          <button class="button primary" type="submit">Forward</button>
+        </div>
+      </form>
+      <form class="intercept-drop" method="post" action="{{ url_for('drop_proxy_intercept', request_id=pending.id) }}">
+        <button class="button secondary" type="submit">Drop</button>
+      </form>
+    </article>
+    {% else %}
+    <p class="empty-text">No intercepted requests are waiting.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Proxy Sessions</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Label</th><th>Proxy</th><th>Status</th><th>Live</th><th>Interceptor</th><th>Notes</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for session in lab.sessions %}
+      <tr>
+        <td>{{ session.label }}</td>
+        <td>{{ session.proxy_host }}:{{ session.proxy_port }}</td>
+        <td>{{ session.status }}</td>
+        <td>
+          {% if session.proxy_live.running %}
+            {{ session.proxy_live.request_count }} request{{ '' if session.proxy_live.request_count == 1 else 's' }}
+          {% else %}
+            idle
+          {% endif %}
+        </td>
+        <td>
+          {% if session.proxy_live.running %}
+            {{ 'on' if session.proxy_live.intercept_enabled else 'off' }}
+            {% if session.proxy_live.pending_count %} - {{ session.proxy_live.pending_count }} pending{% endif %}
+          {% else %}
+            {{ 'on' if lab.intercept_enabled else 'off' }}
+          {% endif %}
+        </td>
+        <td>{{ session.notes or 'none' }}</td>
+        <td>
+          <div class="actions-stack">
+          {% if session.proxy_live.running %}
+          <form method="post" action="{{ url_for('stop_proxy_lab_session') }}">
+            <input type="hidden" name="session_id" value="{{ session.id }}">
+            <button class="button secondary" type="submit">Stop Proxy</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('start_proxy_lab_session') }}">
+            <input type="hidden" name="session_id" value="{{ session.id }}">
+            <button class="button primary" type="submit">Start Proxy</button>
+          </form>
+          {% endif %}
+          <form method="post" action="{{ url_for('delete_proxy_session', session_id=session.id) }}" onsubmit="return confirm('Delete this proxy session and its saved captures?')">
+            <button class="button danger" type="submit">Delete</button>
+          </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">No proxy sessions yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel sticky-action-panel">
+  <div class="panel-head">
+    <div>
+      <h2>Proxy Captures</h2>
+      <p class="muted">Captured HTTP requests can be opened in Repeater for manual edits and replay.</p>
+    </div>
+    {% set history_count = lab.summary.live_request_count + lab.summary.saved_request_count + (lab.replays|length) %}
+    <form method="post" action="{{ url_for('clear_proxy_history') }}" onsubmit="return confirm('Clear saved/live proxy request history and repeater history?')">
+      <button class="button danger" type="submit" {{ 'disabled' if not history_count else '' }}>Clear History</button>
+    </form>
+  </div>
+  <div class="capture-stack">
+    {% set all_captures = lab.live_captures + lab.captures %}
+    {% for capture in all_captures %}
+    <article class="capture-card">
+      <div class="capture-head">
+        <div>
+          <h3>{{ capture.source_name }}</h3>
+          <p class="muted">
+            {{ capture.request_count }} requests{% if capture.windowed %} - latest {{ capture.requests|length }} summarized{% endif %}
+            - {{ capture.domain_count }} domains - {{ capture.cleartext_count }} cleartext
+          </p>
+        </div>
+        {% if capture.live %}<span class="status-pill">live</span>{% endif %}
+      </div>
+      <div class="capture-columns">
+        <div>
+          <strong>Top Domains</strong>
+          <ul class="tight-list">
+            {% for domain, count in capture.top_domains[:8] %}
+            <li>{{ domain }} <span>{{ count }}</span></li>
+            {% else %}
+            <li>No domains parsed.</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div>
+          <strong>Methods</strong>
+          <pre class="mini-json">{{ capture.methods }}</pre>
+        </div>
+        <div>
+          <strong>Status Codes</strong>
+          <pre class="mini-json">{{ capture.statuses }}</pre>
+        </div>
+      </div>
+      <div class="request-list">
+        <div class="request-list-head">
+          <strong>Captured Requests</strong>
+          <span>{% if capture.windowed %}latest {{ capture.requests|length }} shown{% else %}{{ capture.requests|length }} stored{% endif %}</span>
+        </div>
+        {% for item in capture.requests[:25] %}
+        <div class="request-row compact-request-row">
+          <div class="request-summary-row">
+            <span class="method-pill">{{ item.method }}</span>
+            <span class="request-url" title="{{ item.url }}">{{ item.url }}</span>
+            <span class="status-pill {{ 'error' if item.error else '' }}">{{ item.status or 'pending' }}</span>
+            <a class="button secondary" href="{{ url_for('proxy_repeater', capture_id=capture.id, request_index=loop.index0) }}">Send to Repeater</a>
+          </div>
+        </div>
+        {% else %}
+        <p class="empty-text">No request details stored for this capture.</p>
+        {% endfor %}
+        {% if capture.requests|length > 25 %}
+        <p class="muted request-footnote">Showing 25 requests here. Open Repeater for the full captured request and response bodies.</p>
+        {% endif %}
+      </div>
+    </article>
+    {% else %}
+    <p class="empty-text">No proxy captures yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

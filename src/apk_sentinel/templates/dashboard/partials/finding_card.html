@@ -1,0 +1,64 @@
+<article class="finding-card severity-{{ finding.severity }}">
+  <div class="finding-title">
+    <div>
+      <div class="badge-row">
+        <span class="badge badge-{{ finding.severity }}">{{ finding.severity }}</span>
+        <span class="badge badge-exploit">Exploitability: {{ finding.exploitability }}</span>
+        <span class="badge badge-neutral">Confidence: {{ finding.confidence or 'medium' }}</span>
+      </div>
+      <h3>{{ finding.title }}</h3>
+      <p class="muted">{{ finding.description }}</p>
+    </div>
+    <code>{{ finding.rule_id }}</code>
+  </div>
+  <div class="finding-detail-grid">
+    <div><strong>Impact</strong><p>{{ finding.impact }}</p></div>
+    <div><strong>Evidence</strong><p>{{ finding.evidence }}</p></div>
+    <div class="wide">
+      <strong>Step-by-step validation chain</strong>
+      <ol class="chain-list">
+        {% for step in finding.exploitation_chain or [finding.attack_path] %}
+        <li>{{ step }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+    <div><strong>Evidence Quality</strong><p>{{ finding.evidence_quality or 'Static signal. Validate in runtime context.' }}</p></div>
+    <div><strong>Hardening</strong><p>{{ finding.hardening or finding.recommendation }}</p></div>
+    <div>
+      <strong>Location</strong>
+      <p>{{ finding.location or 'Not tied to a single file entry' }}</p>
+      {% if finding.evidence_path %}
+      <a class="inline-action" href="{{ url_for('case_files', case_id=case.id, path=finding.evidence_path, q='', kind='all') }}">Open evidence</a>
+      {% endif %}
+    </div>
+    <div class="wide">
+      <strong>PoC / References</strong>
+      <div class="reference-row">
+        {% for item in finding.references %}
+        <a href="{{ item.url }}" target="_blank" rel="noreferrer">{{ item.label }}</a>
+        {% else %}
+        <span class="muted">No references attached.</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="wide finding-note-cell">
+      <strong>Tester Notes</strong>
+      <form class="finding-note-form" method="post" action="{{ url_for('save_finding_note', case_id=case.id, finding_key=finding.key) }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <div class="finding-note-controls">
+          <label>Status
+            <select class="select-input" name="status">
+              {% for status in ['open', 'reviewed', 'accepted risk', 'false positive'] %}
+              <option value="{{ status }}" {{ 'selected' if finding.tester_status == status else '' }}>{{ status }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Note
+            <textarea class="textarea-input finding-note-input" name="notes" placeholder="Validation notes, false-positive reason, accepted-risk context">{{ finding.tester_notes }}</textarea>
+          </label>
+          <button class="button secondary" type="submit">Save Note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</article>

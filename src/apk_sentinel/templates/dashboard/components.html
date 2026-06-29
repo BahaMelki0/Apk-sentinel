@@ -1,0 +1,51 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Components - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}Manifest{% endblock %}
+{% block heading %}Components{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Declared Components</h2>
+      <p class="muted">{{ components|length }} activity, service, receiver, provider, or alias entries.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kind</th><th>Name</th><th>Exported</th><th>Permission</th><th>Intent Filters</th></tr></thead>
+      <tbody>
+      {% for component in components %}
+        <tr>
+          <td>{{ component.kind }}</td>
+          <td class="path-cell">
+            <a class="inline-action" href="{{ url_for('case_files', case_id=case.id, q=component.name or '', kind='all', path='AndroidManifest.xml') }}">
+              {{ component.name or '(anonymous)' }}
+            </a>
+          </td>
+          <td>{{ component.exported if component.exported is not none else 'not declared' }}</td>
+          <td>{{ component.permission or 'none' }}</td>
+          <td>{{ component.intent_filters }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5">No manifest components found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Component Findings</h2>
+  </div>
+  <div class="finding-stack">
+    {% for finding in component_findings %}
+      {% include "dashboard/partials/finding_card.html" %}
+    {% else %}
+      <p class="empty-text">No exported component findings.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

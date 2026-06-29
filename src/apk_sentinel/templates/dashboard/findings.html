@@ -1,0 +1,32 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Findings - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}Analysis{% endblock %}
+{% block heading %}Findings{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="filter-row">
+    {% for item in severities %}
+    <a class="filter-chip {{ 'active' if severity == item else '' }}" href="{{ url_for('case_findings', case_id=case.id, severity=item) }}">
+      {{ item }}
+      <span>
+        {% if item == 'all' %}
+          {{ case.result.findings|length }}
+        {% else %}
+          {{ case.result.findings|countseverity(item) }}
+        {% endif %}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="finding-stack">
+  {% for finding in findings %}
+    {% include "dashboard/partials/finding_card.html" %}
+  {% else %}
+    <p class="empty-text">No findings match this filter.</p>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Extracted Content - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}APK Contents{% endblock %}
+{% block heading %}Extracted Content{% endblock %}
+
+{% block content %}
+<section class="panel sticky-action-panel">
+  <form class="filter-row" method="get" action="{{ url_for('case_files', case_id=case.id) }}">
+    <input type="hidden" name="dir" value="{{ current_dir }}">
+    <input class="search-input" type="search" name="q" value="{{ query }}" placeholder="Search paths, resources, strings">
+    <select class="select-input" name="kind">
+      {% for item in kinds %}
+      <option value="{{ item }}" {{ 'selected' if item == kind else '' }}>{{ item }}</option>
+      {% endfor %}
+    </select>
+    <label class="inline-check">
+      <input type="checkbox" name="deep" value="1" {{ 'checked' if deep else '' }}>
+      <span>Deep search</span>
+    </label>
+    <button class="button primary" type="submit">Search</button>
+    {% if query %}
+    <a class="button secondary" href="{{ url_for('case_files', case_id=case.id, dir=current_dir, kind=kind) }}">Clear</a>
+    {% endif %}
+  </form>
+</section>
+
+<section class="file-browser">
+  <div class="file-list">
+    <div class="file-list-head file-system-head">
+      <div>
+        <strong>{% if browser.search_mode %}{{ browser.file_count }}{% else %}{{ browser.folder_count }} folders / {{ browser.file_count }} files{% endif %}</strong>
+        <span>{% if browser.search_mode %}search results{% else %}current directory{% endif %}{% if case.summary.reviewed_file_count %} - {{ case.summary.reviewed_file_count }} reviewed{% endif %}</span>
+      </div>
+      {% if current_dir %}
+      <a class="button secondary" href="{{ url_for('case_files', case_id=case.id, dir=browser.parent_dir, q=query, kind=kind, deep='1' if deep else '0') }}">Up</a>
+      {% endif %}
+    </div>
+
+    <nav class="breadcrumb-row">
+      {% for crumb in browser.breadcrumbs %}
+      <a class="{{ 'active' if crumb.dir == current_dir else '' }}" href="{{ url_for('case_files', case_id=case.id, dir=crumb.dir, kind=kind, deep='1' if deep else '0') }}">{{ crumb.label }}</a>
+      {% endfor %}
+    </nav>
+
+    <div class="file-table">
+      {% for entry in browser.rows %}
+        {% if entry.type == 'folder' %}
+        <a class="file-row folder-row" href="{{ url_for('case_files', case_id=case.id, dir=entry.path, kind=kind, deep='1' if deep else '0') }}">
+          <span class="file-kind folder-kind">folder</span>
+          <span class="file-path">
+            {{ entry.name }}/
+            <small>{{ entry.file_count }} file{{ '' if entry.file_count == 1 else 's' }}{% if entry.reviewed_count %} - {{ entry.reviewed_count }} reviewed{% endif %}</small>
+          </span>
+          <span class="file-size">{{ entry.size|filesize }}</span>
+        </a>
+        {% else %}
+        <a class="file-row {{ 'active' if selected_path == entry.path else '' }} {{ 'reviewed' if entry.reviewed else '' }}" href="{{ url_for('case_files', case_id=case.id, dir=entry.parent if not browser.search_mode else current_dir, q=query, kind=kind, path=entry.path, view=view, deep='1' if deep else '0') }}">
+          <span class="file-kind">{{ entry.kind }}{% if entry.reviewed %} - reviewed{% endif %}</span>
+          <span class="file-path">
+            {% if browser.search_mode %}{{ entry.path }}{% else %}{{ entry.name }}{% endif %}
+            {% if entry.search_snippet %}<small>{{ entry.search_snippet }}</small>{% endif %}
+          </span>
+          <span class="file-size">{{ entry.size|filesize }}</span>
+        </a>
+        {% endif %}
+      {% else %}
+      <p class="empty-text">{% if query %}No files match this search.{% else %}This folder is empty for the current filter.{% endif %}</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="preview-pane">
+    {% if preview %}
+    <div class="preview-head sticky-preview-head">
+      <div>
+        <h2>{{ preview.path }}</h2>
+        <p class="muted">{{ preview.kind }} - {{ preview.size|filesize }} - {{ preview.mode }}{% if preview.reviewed %} - reviewed{% endif %}</p>
+      </div>
+      <div class="preview-actions">
+        <a class="button secondary {{ 'active-button' if view != 'strings' else '' }}" href="{{ url_for('case_files', case_id=case.id, dir=current_dir, q=query, kind=kind, path=preview.path, view='preview', deep='1' if deep else '0') }}">Preview</a>
+        <a class="button secondary {{ 'active-button' if view == 'strings' else '' }}" href="{{ url_for('case_files', case_id=case.id, dir=current_dir, q=query, kind=kind, path=preview.path, view='strings', deep='1' if deep else '0') }}">Strings</a>
+        <form method="post" action="{{ url_for('review_entry', case_id=case.id) }}">
+          <input type="hidden" name="path" value="{{ preview.path }}">
+          <input type="hidden" name="dir" value="{{ current_dir }}">
+          <input type="hidden" name="q" value="{{ query }}">
+          <input type="hidden" name="kind" value="{{ kind }}">
+          <input type="hidden" name="view" value="{{ view }}">
+          <input type="hidden" name="deep" value="{{ '1' if deep else '0' }}">
+          <button class="button secondary" type="submit" name="action" value="{{ 'unreview' if preview.reviewed else 'review' }}">
+            {{ 'Unmark Reviewed' if preview.reviewed else 'Mark Reviewed' }}
+          </button>
+        </form>
+        <a class="button secondary" href="{{ url_for('download_entry', case_id=case.id, path=preview.path) }}">Download</a>
+      </div>
+    </div>
+    {% if preview.error %}
+    <div class="flash warning">{{ preview.error }}</div>
+    {% endif %}
+    {% if preview.truncated %}
+    <div class="flash info">Preview truncated.</div>
+    {% endif %}
+    <pre class="preview-code mode-{{ preview.mode }}"><code>{{ preview.content }}</code></pre>
+    {% else %}
+    <div class="empty-state">
+      <h2>{% if browser.search_mode %}Select a search result{% else %}Open a folder or select a file{% endif %}</h2>
+      <p class="muted">Browse the APK as a filesystem. Folders mirror the archive paths exactly, and file previews stay on the right.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

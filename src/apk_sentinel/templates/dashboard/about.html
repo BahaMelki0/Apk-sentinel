@@ -1,0 +1,47 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}About - APK Sentinel{% endblock %}
+{% block eyebrow %}Version{% endblock %}
+{% block heading %}About APK Sentinel{% endblock %}
+
+{% block content %}
+<section class="case-hero about-hero">
+  <div>
+    <p class="muted">Defensive Android APK security analysis framework</p>
+    <p>APK Sentinel combines APK static triage, evidence browsing, proxy interception, replay, tester notes, and report export into a local workflow for authorized mobile security testing.</p>
+  </div>
+  <div class="risk-box">
+    <span>Version</span>
+    <strong>{{ version }}</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>V1.0 Focus</h2>
+  </div>
+  <div class="v10-grid">
+    <div><strong>Static Analysis</strong><p>Manifest, permissions, components, network config, secrets, native files, DEX, and asset inventory.</p></div>
+    <div><strong>Evidence</strong><p>Filesystem-style APK browsing, decoded strings, proof snippets, review marks, and tester notes.</p></div>
+    <div><strong>Proxy Lab</strong><p>Standalone proxy, local CA, interceptor, request history, manual replay, and response proof.</p></div>
+    <div><strong>Deliverables</strong><p>Selected findings, case notes, finding notes, proxy proof, HTML report export, and full case archives.</p></div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Local Paths</h2>
+  </div>
+  <div class="settings-grid">
+    <div class="setting-card"><span>Storage</span><code>{{ storage_dir }}</code></div>
+    <div class="setting-card"><span>Project</span><code>{{ project_dir }}</code></div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Use Scope</h2>
+  </div>
+  <p class="muted">Use this tool only for APKs, devices, accounts, and networks where you have authorization. The dashboard stores local evidence and reports on this workstation.</p>
+</section>
+{% endblock %}

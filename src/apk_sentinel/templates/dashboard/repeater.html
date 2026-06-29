@@ -1,0 +1,159 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Repeater - APK Sentinel{% endblock %}
+{% block eyebrow %}Proxy Lab{% endblock %}
+{% block heading %}Repeater{% endblock %}
+
+{% block content %}
+{% if lab.pending_intercepts %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Paused In Interceptor</h2>
+      <p class="muted">{{ lab.pending_intercepts|length }} request{{ '' if lab.pending_intercepts|length == 1 else 's' }} waiting for forward/drop.</p>
+    </div>
+    <a class="button primary" href="{{ url_for('proxy_lab') }}">Open Interceptor</a>
+  </div>
+</section>
+{% endif %}
+
+<section class="panel sticky-action-panel">
+  <div class="panel-head">
+    <div>
+      <h2>Manual Replay</h2>
+      {% if selected_request %}
+      <p class="muted">{{ selected_request.method }} {{ selected_request.url }}</p>
+      {% else %}
+      <p class="muted">Edit and replay HTTP requests from Proxy Lab captures.</p>
+      {% endif %}
+    </div>
+    <a class="button secondary" href="{{ url_for('proxy_lab') }}">Back to Proxy Lab</a>
+  </div>
+
+  <div class="repeater-grid">
+    <form class="repeater-pane" method="post" action="{{ url_for('proxy_repeater') }}">
+      {% if selected_request %}
+      <input type="hidden" name="capture_id" value="{{ selected_request.capture_id }}">
+      <input type="hidden" name="request_index" value="{{ selected_request.request_index }}">
+      {% endif %}
+      <label class="editor-label">Raw Request
+        <textarea class="editor-input raw-request-editor" name="raw_request" spellcheck="false">{{ draft.raw_request }}</textarea>
+      </label>
+      <button class="button primary" type="submit">Send Request</button>
+    </form>
+
+    <div class="repeater-pane">
+      <div class="repeater-response-head">
+        <h3>Response</h3>
+        {% if replay %}
+          {% if replay.error %}
+          <span class="status-pill error">error</span>
+          {% else %}
+          <span class="status-pill">{{ replay.status }} {{ replay.reason }}</span>
+          {% endif %}
+        {% else %}
+        <span class="status-pill muted-pill">idle</span>
+        {% endif %}
+      </div>
+      {% if replay %}
+        {% if replay.error %}
+        <pre class="mini-json">{{ replay.error }}</pre>
+        {% else %}
+        <div class="response-meta">
+          <span>{{ replay.duration_ms }} ms</span>
+          <span>{{ replay.response_bytes }} bytes</span>
+          {% if replay.response_body_truncated %}<span>truncated</span>{% endif %}
+        </div>
+        <div class="subhead">Headers</div>
+        <pre class="mini-json response-box">{{ replay.response_headers_text or '(none)' }}</pre>
+        <div class="subhead">Body</div>
+        <pre class="mini-json response-box">{{ replay.response_body_text or '(empty)' }}</pre>
+        {% endif %}
+      {% else %}
+      <p class="empty-text">No replay response yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="panel sticky-action-panel">
+  <div class="panel-head">
+    <div>
+      <h2>Request History</h2>
+      <p class="muted">Live and saved proxy requests available for replay.</p>
+    </div>
+    {% set history_count = lab.summary.live_request_count + lab.summary.saved_request_count + (lab.replays|length) %}
+    <form method="post" action="{{ url_for('clear_proxy_history') }}" onsubmit="return confirm('Clear saved/live proxy request history and replay history?')">
+      <button class="button danger" type="submit" {{ 'disabled' if not history_count else '' }}>Clear History</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>Host</th><th>Path</th><th>Status</th><th>Req</th><th>Resp</th><th>Capture</th><th></th></tr></thead>
+      <tbody>
+      {% set all_captures = lab.live_captures + lab.captures %}
+      {% for capture in all_captures %}
+        {% for item in capture.requests[:50] %}
+        <tr>
+          <td><span class="method-pill">{{ item.method }}</span></td>
+          <td class="path-cell">{{ item.host or '-' }}</td>
+          <td class="path-cell">{{ item.path or item.url }}</td>
+          <td>{{ item.status or 'n/a' }}</td>
+          <td>{{ item.request_bytes|filesize }}</td>
+          <td>{{ item.response_bytes|filesize }}</td>
+          <td>{{ capture.source_name }}{% if capture.live %} (live){% endif %}</td>
+          <td class="actions-cell"><a class="button secondary" href="{{ url_for('proxy_repeater', capture_id=capture.id, request_index=loop.index0) }}">Load</a></td>
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr><td colspan="8">No request history yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Replay History</h2>
+  </div>
+  <div class="capture-stack">
+    {% for item in lab.replays %}
+    <article class="capture-card">
+      <div class="capture-head">
+        <div>
+          <h3>{{ item.method }} {{ item.url }}</h3>
+          <p class="muted">
+            {% if item.error %}
+            error - {{ item.duration_ms }} ms
+            {% else %}
+            {{ item.status }} {{ item.reason }} - {{ item.duration_ms }} ms - {{ item.response_bytes }} bytes
+            {% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="request-detail-grid">
+        <div>
+          <div class="subhead">Raw Request</div>
+          <pre class="mini-json">{{ item.raw_request_text or '(none)' }}</pre>
+        </div>
+        <div>
+          <div class="subhead">Response Headers</div>
+          <pre class="mini-json">{{ item.response_headers_text or '(none)' }}</pre>
+        </div>
+        <div>
+          <div class="subhead">Request Body</div>
+          <pre class="mini-json">{{ item.request_body_text or '(empty)' }}</pre>
+        </div>
+        <div>
+          <div class="subhead">Response Body</div>
+          <pre class="mini-json">{{ item.response_body_text or item.error or '(empty)' }}</pre>
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <p class="empty-text">No replay history yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}{{ case.result.profile.file_name }} - APK Sentinel{% endblock %}
+{% block eyebrow %}Case Overview{% endblock %}
+{% block heading %}{{ case.result.profile.file_name }}{% endblock %}
+
+{% block actions %}
+<div class="actions-stack">
+  <a class="button secondary" href="{{ url_for('case_files', case_id=case.id) }}">Open Content</a>
+  <a class="button primary" href="{{ url_for('case_report', case_id=case.id) }}">Build Report</a>
+  <a class="button secondary" href="{{ url_for('export_case_archive', case_id=case.id) }}">Export Case</a>
+  <form method="post" action="{{ url_for('delete_case', case_id=case.id) }}" onsubmit="return confirm('Delete this stored analysis case? The original APK file is not removed.')">
+    <button class="button danger" type="submit">Delete Case</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="case-hero">
+  <div>
+    <p class="muted">{{ case.result.profile.package_name or 'Package unknown' }}</p>
+    <p class="hash">{{ case.result.profile.sha256 }}</p>
+  </div>
+  <div class="risk-box">
+    <span>Risk Posture</span>
+    <strong>{{ case.summary.risk_posture }}</strong>
+  </div>
+</section>
+
+<section class="stat-grid">
+  <div class="stat"><span>Findings</span><strong>{{ case.summary.finding_count }}</strong></div>
+  <div class="stat"><span>Indicators</span><strong>{{ case.summary.indicator_count }}</strong></div>
+  <div class="stat"><span>Captures</span><strong>{{ case.summary.dynamic_capture_count }}</strong></div>
+  <div class="stat"><span>Target SDK</span><strong>{{ case.result.profile.target_sdk or 'Unknown' }}</strong></div>
+  <div class="stat"><span>Min SDK</span><strong>{{ case.result.profile.min_sdk or 'Unknown' }}</strong></div>
+  <div class="stat"><span>Permissions</span><strong>{{ case.result.profile.permissions|length }}</strong></div>
+  <div class="stat"><span>Components</span><strong>{{ case.result.profile.components|length }}</strong></div>
+  <div class="stat"><span>Files</span><strong>{{ case.files|length }}</strong></div>
+  <div class="stat"><span>Finding Notes</span><strong>{{ case.summary.noted_finding_count }}</strong></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Case Notes</h2>
+      <p class="muted">Stored with the case and included in report exports by default.</p>
+    </div>
+  </div>
+  <form class="case-note-form" method="post" action="{{ url_for('save_case_notes', case_id=case.id) }}">
+    <input type="hidden" name="next" value="{{ request.full_path }}">
+    <label class="editor-label">Notes
+      <textarea class="textarea-input case-note-input" name="case_notes" placeholder="Scope, device, account, tester decisions, caveats">{{ case.notes.case_notes }}</textarea>
+    </label>
+    <button class="button primary" type="submit">Save Case Notes</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Severity</h2>
+  </div>
+  <div class="score-grid">
+    {% for severity in ['critical', 'high', 'medium', 'low', 'info'] %}
+    <a class="score score-{{ severity }}" href="{{ url_for('case_findings', case_id=case.id, severity=severity) }}">
+      <strong>{{ case.summary.severity_counts.get(severity, 0) }}</strong>
+      <span>{{ severity }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Top Findings</h2>
+      <p class="muted">Highest-severity items first.</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('case_findings', case_id=case.id) }}">View All</a>
+  </div>
+  <div class="finding-stack">
+    {% for finding in case.result.findings[:5] %}
+      {% include "dashboard/partials/finding_card.html" %}
+    {% else %}
+      <p class="empty-text">No findings produced.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

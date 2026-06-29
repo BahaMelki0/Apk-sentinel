@@ -1,0 +1,56 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Settings - APK Sentinel{% endblock %}
+{% block eyebrow %}Local Configuration{% endblock %}
+{% block heading %}Settings{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Workspace</h2>
+      <p class="muted">Local paths used by this dashboard process.</p>
+    </div>
+  </div>
+  <div class="settings-grid">
+    <div class="setting-card">
+      <span>Storage Path</span>
+      <code>{{ storage_dir }}</code>
+      <p class="muted">Set <code>APK_SENTINEL_STORAGE</code> before launch to change this path.</p>
+    </div>
+    <div class="setting-card">
+      <span>Project Path</span>
+      <code>{{ project_dir }}</code>
+      <p class="muted">Local APK imports are discovered from this folder.</p>
+    </div>
+    <div class="setting-card">
+      <span>Upload Limit</span>
+      <strong>{{ max_upload_mb }} MB</strong>
+      <p class="muted">Set <code>APK_SENTINEL_MAX_UPLOAD_MB</code> before launch to change it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Defaults</h2>
+      <p class="muted">Used when creating new proxy sessions and case reports.</p>
+    </div>
+  </div>
+  <form class="settings-form" method="post" action="{{ url_for('settings') }}">
+    <label>Report Author
+      <input class="search-input" name="report_author" value="{{ settings.report_author }}" placeholder="Tester name or team">
+    </label>
+    <label>Default Proxy Host
+      <input class="search-input" name="default_proxy_host" value="{{ settings.default_proxy_host }}">
+    </label>
+    <label>Default Proxy Port
+      <input class="search-input" type="number" min="1" max="65535" name="default_proxy_port" value="{{ settings.default_proxy_port }}">
+    </label>
+    <div class="settings-submit">
+      <button class="button primary" type="submit">Save Settings</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

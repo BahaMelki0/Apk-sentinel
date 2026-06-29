@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}APK Sentinel{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('index') }}">
+      <span class="brand-mark">AS</span>
+      <span>APK Sentinel</span>
+    </a>
+    <nav class="nav">
+      <a class="{{ 'active' if active == 'dashboard' else '' }}" href="{{ url_for('index') }}">Dashboard</a>
+      <a class="{{ 'active' if active == 'proxy' else '' }}" href="{{ url_for('proxy_lab') }}">Proxy Lab</a>
+      <a class="{{ 'active' if active == 'repeater' else '' }}" href="{{ url_for('proxy_repeater') }}">Repeater</a>
+      <a class="{{ 'active' if active == 'settings' else '' }}" href="{{ url_for('settings') }}">Settings</a>
+      <a class="{{ 'active' if active == 'about' else '' }}" href="{{ url_for('about') }}">About</a>
+      {% if case is defined %}
+      <span class="nav-label">Case</span>
+      <a class="{{ 'active' if active == 'overview' else '' }}" href="{{ url_for('case_overview', case_id=case.id) }}">Overview</a>
+      <a class="{{ 'active' if active == 'findings' else '' }}" href="{{ url_for('case_findings', case_id=case.id) }}">Findings</a>
+      <a class="{{ 'active' if active == 'permissions' else '' }}" href="{{ url_for('case_permissions', case_id=case.id) }}">Permissions</a>
+      <a class="{{ 'active' if active == 'components' else '' }}" href="{{ url_for('case_components', case_id=case.id) }}">Components</a>
+      <a class="{{ 'active' if active == 'indicators' else '' }}" href="{{ url_for('case_indicators', case_id=case.id) }}">Secrets & Indicators</a>
+      <a class="{{ 'active' if active == 'files' else '' }}" href="{{ url_for('case_files', case_id=case.id) }}">Extracted Content</a>
+      <a class="{{ 'active' if active == 'dynamic' else '' }}" href="{{ url_for('case_dynamic', case_id=case.id) }}">Dynamic Evidence</a>
+      <a class="{{ 'active' if active == 'report' else '' }}" href="{{ url_for('case_report', case_id=case.id) }}">Report</a>
+      {% endif %}
+    </nav>
+    <div class="sidebar-foot">v{{ app_version }}</div>
+  </aside>
+
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">{% block eyebrow %}Local Analysis{% endblock %}</p>
+        <h1>{% block heading %}Dashboard{% endblock %}</h1>
+      </div>
+      {% block actions %}{% endblock %}
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

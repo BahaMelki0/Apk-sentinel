@@ -1,0 +1,106 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}APK Sentinel Dashboard{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Import APK</h2>
+      <p class="muted">Create a case from an upload or from an APK already in this project folder.</p>
+    </div>
+  </div>
+  <div class="split-grid tri-split-grid">
+    <form class="import-box" method="post" action="{{ url_for('create_case') }}" enctype="multipart/form-data">
+      <label class="file-picker">
+        <span>Upload APK</span>
+        <input type="file" name="apk" accept=".apk" required>
+      </label>
+      <button class="button primary" type="submit">Analyze Upload</button>
+    </form>
+
+    <form class="import-box" method="post" action="{{ url_for('import_case_archive') }}" enctype="multipart/form-data">
+      <label class="file-picker">
+        <span>Import Case Archive</span>
+        <input type="file" name="archive" accept=".zip" required>
+      </label>
+      <button class="button secondary" type="submit">Restore Case</button>
+    </form>
+
+    <div class="import-box">
+      <h3>Local APKs</h3>
+      {% if local_apks %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Size</th><th></th></tr></thead>
+          <tbody>
+          {% for apk in local_apks %}
+            <tr>
+              <td class="path-cell">{{ apk.name }}</td>
+              <td>{{ apk.size|filesize }}</td>
+              <td class="actions-cell">
+                <form method="post" action="{{ url_for('import_case') }}">
+                  <input type="hidden" name="apk_path" value="{{ apk.path }}">
+                  <button class="button secondary" type="submit">Analyze</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="empty-text">No APK files found beside the project.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Cases</h2>
+      <p class="muted">{{ cases|length }} stored analysis case{{ '' if cases|length == 1 else 's' }}</p>
+    </div>
+  </div>
+  {% if cases %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>APK</th>
+          <th>Package</th>
+          <th>Risk</th>
+          <th>Findings</th>
+          <th>Indicators</th>
+          <th>Target SDK</th>
+          <th>Size</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in cases %}
+        <tr>
+          <td><a class="row-link" href="{{ url_for('case_overview', case_id=item.id) }}">{{ item.file_name }}</a></td>
+          <td class="path-cell">{{ item.package_name }}</td>
+          <td><span class="risk risk-{{ item.risk_posture|lower }}">{{ item.risk_posture }}</span></td>
+          <td>{{ item.finding_count }}</td>
+          <td>{{ item.indicator_count }}</td>
+          <td>{{ item.target_sdk }}</td>
+          <td>{{ item.size_bytes|filesize }}</td>
+          <td class="actions-cell">
+            <form method="post" action="{{ url_for('delete_case', case_id=item.id) }}" onsubmit="return confirm('Delete this stored analysis case? The original APK file is not removed.')">
+              <button class="button danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-text">No cases yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Permissions - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}Manifest{% endblock %}
+{% block heading %}Permissions{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Requested Permissions</h2>
+      <p class="muted">{{ case.result.profile.permissions|length }} permission{{ '' if case.result.profile.permissions|length == 1 else 's' }} declared.</p>
+    </div>
+  </div>
+  <div class="pill-grid">
+    {% for permission in case.result.profile.permissions %}
+      <span class="pill">{{ permission }}</span>
+    {% else %}
+      <span class="pill muted-pill">None found</span>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Permission Findings</h2>
+  </div>
+  <div class="finding-stack">
+    {% for finding in permission_findings %}
+      {% include "dashboard/partials/finding_card.html" %}
+    {% else %}
+      <p class="empty-text">No dangerous permission findings.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

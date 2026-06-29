@@ -1,0 +1,74 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Secrets & Indicators - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}Evidence{% endblock %}
+{% block heading %}Secrets & Indicators{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Indicator Proofs</h2>
+      <p class="muted">Values are redacted when they look credential-like. The SHA-256 proof hash lets a tester verify the exact value without exposing it in the UI.</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('case_files', case_id=case.id) }}">Open Content Browser</a>
+  </div>
+  <div class="filter-row">
+    {% for item in categories %}
+    <a class="filter-chip {{ 'active' if category == item else '' }}" href="{{ url_for('case_indicators', case_id=case.id, category=item) }}">
+      {{ item }}
+      <span>
+        {% if item == 'all' %}
+          {{ case.indicators|length }}
+        {% else %}
+          {{ case.indicators|selectattr('category', 'equalto', item)|list|length }}
+        {% endif %}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="indicator-grid">
+  {% for indicator in indicators %}
+  <article class="indicator-card severity-{{ indicator.severity }}">
+    <div class="indicator-head">
+      <div>
+        <div class="badge-row">
+          <span class="badge badge-{{ indicator.severity }}">{{ indicator.severity }}</span>
+          <span class="badge badge-exploit">{{ indicator.category }}</span>
+          <span class="badge badge-neutral">{{ indicator.confidence }} confidence</span>
+        </div>
+        <h3>{{ indicator.label }}</h3>
+        <p class="muted">{{ indicator.description }}</p>
+      </div>
+      <a class="button secondary" href="{{ url_for('case_files', case_id=case.id, q='', kind='all', path=indicator.path) }}">View File</a>
+    </div>
+    <div class="indicator-body">
+      <div>
+        <strong>Proof Value</strong>
+        <code>{{ indicator.value_preview }}</code>
+      </div>
+      <div>
+        <strong>Proof Hash</strong>
+        <code>{{ indicator.value_sha256 }}</code>
+      </div>
+      <div>
+        <strong>Source</strong>
+        <p>{{ indicator.path }}{% if indicator.line %}:{{ indicator.line }}{% endif %}</p>
+      </div>
+      <div>
+        <strong>Recommendation</strong>
+        <p>{{ indicator.recommendation }}</p>
+      </div>
+      <div class="wide">
+        <strong>Proof Snippet</strong>
+        <pre class="proof-snippet"><code>{{ indicator.proof }}</code></pre>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <p class="empty-text">No indicators match this filter.</p>
+  {% endfor %}
+</section>
+{% endblock %}
