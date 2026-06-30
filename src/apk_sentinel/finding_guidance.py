@@ -17,6 +17,8 @@ DEFAULT_GUIDANCE = {
         {"label": "OWASP MASVS", "url": "https://mas.owasp.org/MASVS/"},
         {"label": "OWASP MASTG", "url": "https://mas.owasp.org/MASTG/"},
     ],
+    "finding_type": "static signal",
+    "masvs": ["MASVS-CODE"],
 }
 
 
@@ -32,6 +34,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "OWASP MASTG", "url": "https://mas.owasp.org/MASTG/"},
         ],
+        "finding_type": "scanner limitation",
+        "masvs": ["MASVS-CODE"],
     },
     "manifest.debuggable": {
         "confidence": "high",
@@ -47,6 +51,7 @@ RULE_GUIDANCE = {
             {"label": "Android debugging", "url": "https://developer.android.com/studio/debug"},
             {"label": "OWASP MASTG", "url": "https://mas.owasp.org/MASTG/"},
         ],
+        "masvs": ["MASVS-RESILIENCE", "MASVS-CODE"],
     },
     "manifest.allow_backup": {
         "confidence": "medium",
@@ -61,6 +66,7 @@ RULE_GUIDANCE = {
             {"label": "Android app backup", "url": "https://developer.android.com/identity/data/autobackup"},
             {"label": "Android application manifest", "url": "https://developer.android.com/guide/topics/manifest/application-element"},
         ],
+        "masvs": ["MASVS-STORAGE"],
     },
     "manifest.cleartext": {
         "confidence": "high",
@@ -75,6 +81,7 @@ RULE_GUIDANCE = {
             {"label": "Android network security config", "url": "https://developer.android.com/privacy-and-security/security-config"},
             {"label": "OWASP MASVS Network", "url": "https://mas.owasp.org/MASVS/controls/MASVS-NETWORK/"},
         ],
+        "masvs": ["MASVS-NETWORK"],
     },
     "manifest.target_sdk_old": {
         "confidence": "medium",
@@ -88,6 +95,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "Android behavior changes", "url": "https://developer.android.com/about/versions"},
         ],
+        "finding_type": "platform hygiene signal",
+        "masvs": ["MASVS-CODE"],
     },
     "manifest.min_sdk_legacy": {
         "confidence": "medium",
@@ -100,6 +109,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "Android versions", "url": "https://developer.android.com/about/versions"},
         ],
+        "finding_type": "platform hygiene signal",
+        "masvs": ["MASVS-CODE"],
     },
     "manifest.dangerous_permission": {
         "confidence": "medium",
@@ -113,6 +124,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "Android permissions", "url": "https://developer.android.com/privacy-and-security/permissions"},
         ],
+        "finding_type": "permission signal",
+        "masvs": ["MASVS-PRIVACY", "MASVS-PLATFORM"],
     },
     "manifest.exported_component": {
         "confidence": "high",
@@ -128,6 +141,8 @@ RULE_GUIDANCE = {
             {"label": "Android app components", "url": "https://developer.android.com/guide/components/fundamentals"},
             {"label": "OWASP MASTG", "url": "https://mas.owasp.org/MASTG/"},
         ],
+        "finding_type": "attack surface finding",
+        "masvs": ["MASVS-PLATFORM"],
     },
     "manifest.implicit_export": {
         "confidence": "medium",
@@ -142,6 +157,8 @@ RULE_GUIDANCE = {
             {"label": "PoC reference: adb", "url": "https://developer.android.com/tools/adb"},
             {"label": "Android app components", "url": "https://developer.android.com/guide/components/fundamentals"},
         ],
+        "finding_type": "attack surface signal",
+        "masvs": ["MASVS-PLATFORM"],
     },
     "network.cleartext_config": {
         "confidence": "high",
@@ -156,6 +173,7 @@ RULE_GUIDANCE = {
             {"label": "Android network security config", "url": "https://developer.android.com/privacy-and-security/security-config"},
             {"label": "OWASP MASVS Network", "url": "https://mas.owasp.org/MASVS/controls/MASVS-NETWORK/"},
         ],
+        "masvs": ["MASVS-NETWORK"],
     },
     "network.user_ca_trust": {
         "confidence": "high",
@@ -170,6 +188,7 @@ RULE_GUIDANCE = {
             {"label": "Android network security config", "url": "https://developer.android.com/privacy-and-security/security-config"},
             {"label": "OWASP MASVS Network", "url": "https://mas.owasp.org/MASVS/controls/MASVS-NETWORK/"},
         ],
+        "masvs": ["MASVS-NETWORK"],
     },
     "files.dynamic_code_asset": {
         "confidence": "medium",
@@ -183,6 +202,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "OWASP MASTG", "url": "https://mas.owasp.org/MASTG/"},
         ],
+        "finding_type": "code loading signal",
+        "masvs": ["MASVS-CODE"],
     },
     "files.native_libraries": {
         "confidence": "medium",
@@ -196,6 +217,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "OWASP MASTG", "url": "https://mas.owasp.org/MASTG/"},
         ],
+        "finding_type": "native code signal",
+        "masvs": ["MASVS-CODE"],
     },
     "signing.no_certificate_entry": {
         "confidence": "low",
@@ -208,6 +231,8 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "Android app signing", "url": "https://developer.android.com/studio/publish/app-signing"},
         ],
+        "finding_type": "signing validation signal",
+        "masvs": ["MASVS-CODE"],
     },
     "assets.secret_indicator": {
         "confidence": "high",
@@ -221,6 +246,18 @@ RULE_GUIDANCE = {
         "references": [
             {"label": "OWASP MASVS Storage", "url": "https://mas.owasp.org/MASVS/controls/MASVS-STORAGE/"},
             {"label": "Android app security best practices", "url": "https://developer.android.com/privacy-and-security/security-best-practices"},
+        ],
+        "finding_type": "secret exposure finding",
+        "masvs": ["MASVS-STORAGE", "MASVS-PRIVACY"],
+    },
+    "vuln.osv_package": {
+        "confidence": "high",
+        "evidence_quality": "External vulnerability intelligence match from package/version evidence.",
+        "finding_type": "external vuln match",
+        "masvs": ["MASVS-CODE"],
+        "references": [
+            {"label": "OSV.dev", "url": "https://osv.dev/"},
+            {"label": "OWASP MASVS Code", "url": "https://mas.owasp.org/MASVS/controls/MASVS-CODE/"},
         ],
     },
 }
@@ -236,6 +273,10 @@ def enrich_finding(finding: Finding) -> Finding:
         finding.exploitation_chain = list(guidance["exploitation_chain"])
     if not finding.references:
         finding.references = deepcopy(guidance["references"])
+    if not finding.finding_type:
+        finding.finding_type = guidance["finding_type"]
+    if not finding.masvs:
+        finding.masvs = list(guidance["masvs"])
     return finding
 
 
@@ -252,6 +293,10 @@ def enrich_finding_dict(finding: dict) -> dict:
         enriched["exploitation_chain"] = list(guidance["exploitation_chain"])
     if not enriched.get("references"):
         enriched["references"] = deepcopy(guidance["references"])
+    if not enriched.get("finding_type"):
+        enriched["finding_type"] = guidance["finding_type"]
+    if not enriched.get("masvs"):
+        enriched["masvs"] = list(guidance["masvs"])
     return enriched
 
 

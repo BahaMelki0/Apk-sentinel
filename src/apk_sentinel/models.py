@@ -54,6 +54,7 @@ class ApkProfile:
     dex_files: list[str] = field(default_factory=list)
     native_libraries: list[str] = field(default_factory=list)
     asset_entries: list[str] = field(default_factory=list)
+    dependencies: list[dict[str, str]] = field(default_factory=list)
     secret_indicators: list[dict[str, str]] = field(default_factory=list)
     parse_warnings: list[str] = field(default_factory=list)
 
@@ -75,6 +76,8 @@ class Finding:
     evidence_quality: str = ""
     exploitation_chain: list[str] = field(default_factory=list)
     references: list[dict[str, str]] = field(default_factory=list)
+    finding_type: str = ""
+    masvs: list[str] = field(default_factory=list)
 
 
 @dataclass

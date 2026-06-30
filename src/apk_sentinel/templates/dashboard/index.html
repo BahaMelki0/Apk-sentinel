@@ -71,7 +71,8 @@
         <tr>
           <th>APK</th>
           <th>Package</th>
-          <th>Risk</th>
+          <th>Static Posture</th>
+          <th>Vuln Intel</th>
           <th>Findings</th>
           <th>Indicators</th>
           <th>Target SDK</th>
@@ -84,7 +85,11 @@
         <tr>
           <td><a class="row-link" href="{{ url_for('case_overview', case_id=item.id) }}">{{ item.file_name }}</a></td>
           <td class="path-cell">{{ item.package_name }}</td>
-          <td><span class="risk risk-{{ item.risk_posture|lower }}">{{ item.risk_posture }}</span></td>
+          <td><span class="risk risk-{{ item.static_risk_posture|lower }}">{{ item.static_risk_posture }}</span></td>
+          <td>
+            <span class="risk risk-{{ item.vuln_risk_posture|lower|replace(' ', '-') }}">{{ item.vuln_risk_posture }}</span>
+            {% if item.vuln_match_count %}<span class="muted"> {{ item.vuln_match_count }}</span>{% endif %}
+          </td>
           <td>{{ item.finding_count }}</td>
           <td>{{ item.indicator_count }}</td>
           <td>{{ item.target_sdk }}</td>

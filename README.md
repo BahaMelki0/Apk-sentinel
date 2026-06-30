@@ -6,6 +6,8 @@ APK Sentinel is a local Android APK security assessment framework for authorized
 
 - Dashboard case workflow for uploading APKs, importing local APKs, deleting cases, and exporting/importing full case archives.
 - Static findings with severity, exploitability, confidence, evidence quality, validation chains, hardening steps, and references.
+- Dependency inventory from Maven metadata, Android SDK properties, native libraries, and framework fingerprints.
+- Local vulnerability intelligence cache backed by OSV package/version lookups for discovered Maven dependencies.
 - APK content browser with folder-style navigation, safe previews, decoded strings, deep resource search, manifest/component cross-links, and reviewed marks.
 - Secrets and indicators page with proof snippets, redaction-friendly context, evidence hashes, and source paths.
 - Proxy Lab with local CA generation, HTTP/HTTPS capture, Interceptor, request history, Forward All, and manual Repeater replay with response proof.
@@ -46,11 +48,24 @@ python -m apk_sentinel --version
 
 1. Import an APK from the Dashboard page or restore an exported case archive.
 2. Review the case overview, add case notes, and open top findings.
-3. Use Findings, Permissions, Components, Secrets & Indicators, and Extracted Content to validate evidence.
+3. Use Findings, Permissions, Components, Intelligence, Secrets & Indicators, and Extracted Content to validate evidence.
 4. Mark files as reviewed and add per-finding tester notes such as validation status, false-positive reasoning, or accepted-risk context.
-5. Use Proxy Lab for runtime traffic capture and Repeater for manual request modification/replay.
-6. Build a report with selected findings, proof snippets, proxy evidence, and tester notes.
-7. Export the full case archive when you want to move or preserve the case state.
+5. Update the OSV cache from Vulnerability Intelligence when network access is available.
+6. Use Proxy Lab for runtime traffic capture and Repeater for manual request modification/replay.
+7. Build a report with selected findings, proof snippets, vulnerability intelligence, proxy evidence, and tester notes.
+8. Export the full case archive when you want to move or preserve the case state.
+
+## Static Intelligence
+
+APK Sentinel treats local heuristic issues as static signals unless the evidence is strong enough to call them findings. Dependency matches from the local vulnerability cache are shown as external vulnerability intelligence and should be validated for reachability before they become confirmed exploit paths.
+
+The current intelligence layer can:
+
+- extract Maven package coordinates from `META-INF/maven/**/pom.properties`;
+- fingerprint Android SDK properties, native libraries, and common frameworks;
+- update a local OSV cache for Maven package/version matches;
+- promote cached vulnerability matches into Findings with MASVS tags and validation chains;
+- include dependency and vulnerability evidence in HTML reports.
 
 ## Proxy Lab
 

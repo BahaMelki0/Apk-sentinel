@@ -17,11 +17,18 @@ Open `http://127.0.0.1:5050/`.
 2. Open the case overview and record scope, device, account, and testing notes in Case Notes.
 3. Review top findings and jump into Findings for the full report-like list.
 4. Use Permissions and Components to validate manifest-driven risks.
-5. Use Secrets & Indicators for proof snippets and source locations.
-6. Use Extracted Content for filesystem-style APK browsing, decoded strings, manifest previews, resource search, and reviewed marks.
-7. Use Dynamic Evidence for case-attached HAR or capture imports, or use standalone Proxy Lab for live traffic work.
-8. Build HTML deliverables from Report.
-9. Export a full case archive when the case needs to be moved, backed up, or shared inside an authorized engagement.
+5. Use Intelligence to review dependency inventory and cached vulnerability matches.
+6. Use Secrets & Indicators for proof snippets and source locations.
+7. Use Extracted Content for filesystem-style APK browsing, decoded strings, manifest previews, resource search, and reviewed marks.
+8. Use Dynamic Evidence for case-attached HAR or capture imports, or use standalone Proxy Lab for live traffic work.
+9. Build HTML deliverables from Report.
+10. Export a full case archive when the case needs to be moved, backed up, or shared inside an authorized engagement.
+
+## Static Intelligence
+
+The Intelligence pages separate local static signals from external vulnerability matches. APK Sentinel extracts package evidence from Maven metadata, Android SDK properties, native library inventory, and common framework fingerprints. Maven package/version entries can be queried against OSV and cached locally.
+
+External vulnerability matches are promoted into Findings as `external vuln match`, but they still need reachability validation before a tester calls them exploitable.
 
 ## Notes
 

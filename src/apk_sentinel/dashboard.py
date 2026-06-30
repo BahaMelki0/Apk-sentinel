@@ -25,9 +25,11 @@ from apk_sentinel.dynamic import create_session as make_dynamic_session
 from apk_sentinel.dynamic import empty_dynamic_state, import_capture
 from apk_sentinel.finding_guidance import enrich_finding_dict
 from apk_sentinel.indicators import extract_indicators
+from apk_sentinel.inventory import extract_dependency_inventory
 from apk_sentinel.models import SEVERITY_ORDER
 from apk_sentinel.replay import blank_replay_draft, draft_from_request, replay_raw_http_request
 from apk_sentinel.tls_ca import ca_status, ensure_ca, export_ca
+from apk_sentinel.vuln_intel import load_vuln_db, match_vulnerabilities, update_osv_cache, vuln_match_to_finding
 
 PREVIEW_BYTES = 256 * 1024
 XML_PREVIEW_BYTES = 2 * 1024 * 1024
@@ -142,6 +144,35 @@ def create_app(storage_dir: str | Path | None = None) -> Flask:
             storage_dir=app.config["STORAGE_DIR"],
             project_dir=app.config["PROJECT_DIR"],
         )
+
+    @app.get("/intelligence")
+    def vulnerability_intelligence():
+        storage_dir = app.config["STORAGE_DIR"]
+        db = load_vuln_db(storage_dir)
+        cases = _list_cases(storage_dir)
+        dependencies = _all_case_dependencies(storage_dir)
+        package_count = len(db.get("packages", {}))
+        vuln_count = sum(len(item.get("vulnerabilities", [])) for item in db.get("packages", {}).values())
+        return render_template(
+            "dashboard/intelligence.html",
+            active="intelligence",
+            db=db,
+            cases=cases,
+            dependencies=dependencies,
+            package_count=package_count,
+            vuln_count=vuln_count,
+        )
+
+    @app.post("/intelligence/update")
+    def update_vulnerability_intelligence():
+        storage_dir = app.config["STORAGE_DIR"]
+        dependencies = _all_case_dependencies(storage_dir)
+        result = update_osv_cache(storage_dir, dependencies)
+        if result.get("error"):
+            flash(f"OSV update failed: {result['error']}", "error")
+        else:
+            flash(f"OSV update complete: {result['queried']} package(s), {result['vulnerabilities']} vulnerability match(es).", "info")
+        return redirect(url_for("vulnerability_intelligence"))
 
     @app.get("/proxy")
     def proxy_lab():
@@ -612,6 +643,22 @@ def create_app(storage_dir: str | Path | None = None) -> Flask:
             categories=categories,
         )
 
+    @app.get("/cases/<case_id>/intelligence")
+    def case_intelligence(case_id: str):
+        case = _load_case(app.config["STORAGE_DIR"], case_id)
+        db = load_vuln_db(app.config["STORAGE_DIR"])
+        return render_template("dashboard/case_intelligence.html", active="intelligence", case=case, db=db)
+
+    @app.post("/cases/<case_id>/intelligence/update")
+    def update_case_intelligence(case_id: str):
+        case = _load_case(app.config["STORAGE_DIR"], case_id)
+        result = update_osv_cache(app.config["STORAGE_DIR"], case["dependencies"])
+        if result.get("error"):
+            flash(f"OSV update failed: {result['error']}", "error")
+        else:
+            flash(f"OSV update complete: {result['queried']} package(s), {result['vulnerabilities']} vulnerability match(es).", "info")
+        return redirect(url_for("case_intelligence", case_id=case_id))
+
     @app.get("/cases/<case_id>/dynamic")
     def case_dynamic(case_id: str):
         case = _load_case(app.config["STORAGE_DIR"], case_id)
@@ -865,6 +912,7 @@ def _create_case_from_path(source_path: Path, storage_dir: Path, original_name: 
     result_data = asdict(result)
     file_index = _index_apk(apk_copy)
     indicators = extract_indicators(apk_copy)
+    dependencies = result_data.get("profile", {}).get("dependencies", [])
     metadata = {
         "id": case_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -875,6 +923,7 @@ def _create_case_from_path(source_path: Path, storage_dir: Path, original_name: 
     _write_json(case_dir / "result.json", result_data)
     _write_json(case_dir / "files.json", file_index)
     _write_json(case_dir / "indicators.json", indicators)
+    _write_json(case_dir / "dependencies.json", dependencies)
     _write_json(case_dir / "dynamic.json", empty_dynamic_state())
     _write_json(case_dir / "case.json", metadata)
     return case_id
@@ -907,10 +956,18 @@ def _load_case(storage_dir: Path, case_id: str) -> dict:
     files = _read_json(case_dir / "files.json")
     reviews = _load_reviews(case_dir)
     notes = _load_case_notes(case_dir)
+    dependencies = _load_dependencies(case_dir, metadata)
+    result.setdefault("profile", {}).setdefault("dependencies", dependencies)
+    if not result["profile"].get("dependencies"):
+        result["profile"]["dependencies"] = dependencies
+    vuln_db = load_vuln_db(storage_dir)
+    vuln_matches = match_vulnerabilities(dependencies, vuln_db)
     for entry in files:
         entry["reviewed"] = entry.get("path") in reviews
+    base_findings = list(result.get("findings", []))
+    vuln_findings = [vuln_match_to_finding(match) for match in vuln_matches]
     result["findings"] = _sorted_findings(
-        [_attach_finding_metadata(enrich_finding_dict(finding), files, notes) for finding in result.get("findings", [])]
+        [_attach_finding_metadata(enrich_finding_dict(finding), files, notes) for finding in [*base_findings, *vuln_findings]]
     )
     indicators = _load_indicators(case_dir, metadata)
     dynamic = _load_dynamic_state(case_dir)
@@ -919,12 +976,19 @@ def _load_case(storage_dir: Path, case_id: str) -> dict:
     summary["dynamic_capture_count"] = len(dynamic["captures"])
     summary["reviewed_file_count"] = len(reviews)
     summary["noted_finding_count"] = sum(1 for item in notes.get("findings", {}).values() if item.get("notes"))
+    summary["dependency_count"] = len(dependencies)
+    summary["vuln_match_count"] = len(vuln_matches)
+    summary["external_finding_count"] = sum(1 for finding in result["findings"] if finding.get("finding_type") == "external vuln match")
+    summary["static_signal_count"] = sum(1 for finding in result["findings"] if finding.get("finding_type") != "external vuln match")
     return {
         "id": case_id,
         "dir": str(case_dir),
         "metadata": metadata,
         "result": result,
         "files": files,
+        "dependencies": dependencies,
+        "vuln_matches": vuln_matches,
+        "vuln_db": vuln_db,
         "indicators": indicators,
         "dynamic": dynamic,
         "reviews": reviews,
@@ -940,6 +1004,48 @@ def _load_indicators(case_dir: Path, metadata: dict) -> list[dict]:
     indicators = extract_indicators(metadata["apk_path"])
     _write_json(path, indicators)
     return indicators
+
+
+def _load_dependencies(case_dir: Path, metadata: dict) -> list[dict]:
+    path = case_dir / "dependencies.json"
+    if path.exists():
+        try:
+            data = _read_json(path)
+        except (json.JSONDecodeError, OSError):
+            data = []
+        if isinstance(data, list):
+            return data
+    apk_path = Path(metadata.get("apk_path") or case_dir / "app.apk")
+    if not apk_path.exists():
+        apk_path = case_dir / "app.apk"
+    try:
+        dependencies = extract_dependency_inventory(apk_path)
+    except (OSError, zipfile.BadZipFile, ValueError):
+        dependencies = []
+    _write_json(path, dependencies)
+    return dependencies
+
+
+def _all_case_dependencies(storage_dir: Path) -> list[dict]:
+    dependencies: dict[str, dict] = {}
+    for case_dir in sorted((storage_dir / "cases").glob("*")):
+        if not case_dir.is_dir():
+            continue
+        try:
+            metadata = _read_json(case_dir / "case.json")
+            for dependency in _load_dependencies(case_dir, metadata):
+                key = "|".join(
+                    [
+                        dependency.get("ecosystem", ""),
+                        dependency.get("name", ""),
+                        dependency.get("version", ""),
+                        dependency.get("purl", ""),
+                    ]
+                )
+                dependencies.setdefault(key, dependency)
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+    return sorted(dependencies.values(), key=lambda item: (item.get("ecosystem", ""), item.get("name", ""), item.get("version", "")))
 
 
 def _load_dynamic_state(case_dir: Path) -> dict:
@@ -1039,6 +1145,11 @@ def _case_summary(case: dict) -> dict:
         "dynamic_capture_count": summary.get("dynamic_capture_count", 0),
         "reviewed_file_count": summary.get("reviewed_file_count", 0),
         "risk_posture": summary["risk_posture"],
+        "static_risk_posture": summary.get("static_risk_posture", summary["risk_posture"]),
+        "vuln_risk_posture": summary.get("vuln_risk_posture", "No matches"),
+        "vuln_match_count": summary.get("vuln_match_count", 0),
+        "static_signal_count": summary.get("static_signal_count", summary["finding_count"]),
+        "external_finding_count": summary.get("external_finding_count", 0),
         "severity_counts": summary["severity_counts"],
     }
 
@@ -1047,17 +1158,36 @@ def _summarize_result(result: dict) -> dict:
     findings = result.get("findings", [])
     severity_counts = Counter(finding.get("severity", "info") for finding in findings)
     exploitability_counts = Counter(finding.get("exploitability", "needs validation") for finding in findings)
-    risk_posture = "Clean"
-    for severity in ("critical", "high", "medium", "low", "info"):
-        if severity_counts[severity]:
-            risk_posture = severity.title()
-            break
+    static_counts = Counter(
+        finding.get("severity", "info")
+        for finding in findings
+        if finding.get("finding_type") != "external vuln match"
+    )
+    external_counts = Counter(
+        finding.get("severity", "info")
+        for finding in findings
+        if finding.get("finding_type") == "external vuln match"
+    )
+    risk_posture = _posture_from_counts(severity_counts, empty_label="Clean")
+    static_risk_posture = _posture_from_counts(static_counts, empty_label="Clean")
+    vuln_risk_posture = _posture_from_counts(external_counts, empty_label="No matches")
     return {
         "finding_count": len(findings),
         "risk_posture": risk_posture,
+        "static_risk_posture": static_risk_posture,
+        "vuln_risk_posture": vuln_risk_posture,
         "severity_counts": dict(severity_counts),
+        "static_severity_counts": dict(static_counts),
+        "external_severity_counts": dict(external_counts),
         "exploitability_counts": dict(exploitability_counts),
     }
+
+
+def _posture_from_counts(counts: Counter, empty_label: str) -> str:
+    for severity in ("critical", "high", "medium", "low", "info"):
+        if counts[severity]:
+            return severity.title()
+    return empty_label
 
 
 def _index_apk(apk_path: Path) -> list[dict]:
@@ -1616,6 +1746,7 @@ def _render_case_report_html(case: dict, findings: list[dict], options: dict) ->
     proxy_section = ""
     if options.get("include_proxy"):
         proxy_section = _report_proxy_section(case.get("dynamic", {}))
+    intelligence_section = _report_intelligence_section(case.get("dependencies", []), case.get("vuln_matches", []))
 
     return f"""<!doctype html>
 <html lang="en">
@@ -1677,13 +1808,20 @@ def _render_case_report_html(case: dict, findings: list[dict], options: dict) ->
     .chain {{ margin: 0; padding-left: 20px; }}
     .chain li {{ margin-bottom: 6px; }}
     .proof {{ display: block; width: 100%; max-width: 100%; max-height: 320px; margin: 0; overflow: auto; border: 1px solid var(--line); border-left: 5px solid var(--low); border-radius: 8px; padding: 12px; background: #f8fafc; color: #111827; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }}
+    .evidence-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }}
+    .evidence-card {{ min-width: 0; border: 1px solid var(--line); border-left: 6px solid var(--low); border-radius: 8px; background: #fff; overflow: hidden; }}
+    .evidence-card.critical {{ border-left-color: var(--critical); }}
+    .evidence-card.high {{ border-left-color: var(--high); }}
+    .evidence-card.medium {{ border-left-color: var(--medium); }}
+    .evidence-card.low {{ border-left-color: var(--low); }}
+    .evidence-head {{ padding: 12px; border-bottom: 1px solid var(--line); background: #fbfcfe; }}
+    .evidence-head h3 {{ margin-bottom: 4px; overflow-wrap: anywhere; }}
+    .evidence-meta {{ display: grid; gap: 8px; padding: 12px; }}
+    .evidence-meta div {{ min-width: 0; }}
+    .evidence-meta strong {{ display: block; margin-bottom: 3px; color: #334155; font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }}
     table {{ width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; }}
     th, td {{ min-width: 0; border-bottom: 1px solid var(--line); padding: 9px; text-align: left; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }}
     th {{ color: #334155; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }}
-    .proof-table th:nth-child(1) {{ width: 82px; }}
-    .proof-table th:nth-child(2) {{ width: 18%; }}
-    .proof-table th:nth-child(3) {{ width: 20%; }}
-    .proof-table th:nth-child(4) {{ width: 22%; }}
     .proxy-table th:nth-child(1) {{ width: 82px; }}
     .proxy-table th:nth-child(4) {{ width: 82px; }}
     a {{ color: #0f766e; }}
@@ -1716,6 +1854,7 @@ def _render_case_report_html(case: dict, findings: list[dict], options: dict) ->
   </section>
 
   {indicator_section}
+  {intelligence_section}
   {proxy_section}
 </main>
 </body>
@@ -1761,24 +1900,79 @@ def _report_finding_card(finding: dict, number: int) -> str:
 
 
 def _report_indicator_section(indicators: list[dict]) -> str:
-    rows = "\n".join(
-        "<tr>"
-        f"<td>{_h(item.get('severity', ''))}</td>"
-        f"<td>{_h(item.get('label', ''))}</td>"
-        f"<td>{_h(item.get('path', ''))}</td>"
-        f"<td><code>{_h(item.get('value_sha256', ''))}</code></td>"
-        f"<td><pre class=\"proof\">{_h(item.get('proof', ''))}</pre></td>"
-        "</tr>"
+    cards = "\n".join(
+        f"""
+  <article class="evidence-card {_h(item.get('severity', 'info'))}">
+    <div class="evidence-head">
+      <div class="badge-row">
+        <span class="badge {_h(item.get('severity', 'info'))}">{_h(item.get('severity', ''))}</span>
+        <span class="badge neutral">{_h(item.get('category', 'indicator'))}</span>
+      </div>
+      <h3>{_h(item.get('label', 'Indicator'))}</h3>
+      <p class="muted">{_h(item.get('description', ''))}</p>
+    </div>
+    <div class="evidence-meta">
+      <div><strong>Source</strong><p>{_h(item.get('path', ''))}{':' + _h(item.get('line')) if item.get('line') else ''}</p></div>
+      <div><strong>Proof value</strong><code>{_h(item.get('value_preview', ''))}</code></div>
+      <div><strong>Proof hash</strong><code>{_h(item.get('value_sha256', ''))}</code></div>
+      <div><strong>Snippet</strong><pre class="proof">{_h(item.get('proof', ''))}</pre></div>
+    </div>
+  </article>"""
         for item in indicators
     )
-    if not rows:
-        rows = '<tr><td colspan="5">No indicators were available.</td></tr>'
+    if not cards:
+        cards = '<p class="empty">No indicators were available.</p>'
     return f"""
 <section class="panel">
   <h2>Proof Snippets</h2>
-  <table class="proof-table">
-    <thead><tr><th>Severity</th><th>Indicator</th><th>Path</th><th>Proof Hash</th><th>Snippet</th></tr></thead>
-    <tbody>{rows}</tbody>
+  <div class="evidence-grid">{cards}</div>
+</section>"""
+
+
+def _report_intelligence_section(dependencies: list[dict], matches: list[dict]) -> str:
+    if not dependencies and not matches:
+        return ""
+    match_cards = "\n".join(
+        f"""
+  <article class="evidence-card {_h(match.get('vulnerability', {}).get('severity', 'medium'))}">
+    <div class="evidence-head">
+      <div class="badge-row">
+        <span class="badge {_h(match.get('vulnerability', {}).get('severity', 'medium'))}">{_h(match.get('vulnerability', {}).get('severity', 'medium'))}</span>
+        <span class="badge neutral">{_h(match.get('source', 'OSV'))}</span>
+      </div>
+      <h3>{_h(match.get('vulnerability', {}).get('id', 'Vulnerability match'))}</h3>
+      <p class="muted">{_h(match.get('vulnerability', {}).get('summary', ''))}</p>
+    </div>
+    <div class="evidence-meta">
+      <div><strong>Package</strong><p>{_h(match.get('dependency', {}).get('name', ''))}@{_h(match.get('dependency', {}).get('version', ''))}</p></div>
+      <div><strong>Evidence</strong><p>{_h(match.get('dependency', {}).get('evidence', ''))}</p></div>
+      <div><strong>PURL</strong><code>{_h(match.get('dependency', {}).get('purl', ''))}</code></div>
+    </div>
+  </article>"""
+        for match in matches
+    )
+    if not match_cards:
+        match_cards = '<p class="empty">No cached vulnerability matches for the discovered package inventory.</p>'
+    dependency_rows = "\n".join(
+        "<tr>"
+        f"<td>{_h(item.get('ecosystem', ''))}</td>"
+        f"<td>{_h(item.get('name', ''))}</td>"
+        f"<td>{_h(item.get('version', '') or 'unknown')}</td>"
+        f"<td>{_h(item.get('confidence', ''))}</td>"
+        f"<td>{_h(item.get('evidence', ''))}</td>"
+        "</tr>"
+        for item in dependencies[:80]
+    )
+    if not dependency_rows:
+        dependency_rows = '<tr><td colspan="5">No dependencies were identified.</td></tr>'
+    return f"""
+<section class="panel">
+  <h2>Vulnerability Intelligence</h2>
+  <div class="evidence-grid">{match_cards}</div>
+  <h3>Dependency Inventory</h3>
+  <table>
+    <thead><tr><th>Ecosystem</th><th>Name</th><th>Version</th><th>Confidence</th><th>Evidence</th></tr></thead>
+    <tbody>{dependency_rows}</tbody>
   </table>
 </section>"""
 

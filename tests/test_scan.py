@@ -54,6 +54,10 @@ class ScanTests(unittest.TestCase):
                 archive.writestr("AndroidManifest.xml", MANIFEST)
                 archive.writestr("classes.dex", b"dex\n035\0")
                 archive.writestr("lib/arm64-v8a/libdemo.so", b"\x7fELF")
+                archive.writestr(
+                    "META-INF/maven/com.squareup.okhttp3/okhttp/pom.properties",
+                    "groupId=com.squareup.okhttp3\nartifactId=okhttp\nversion=4.9.0\n",
+                )
                 archive.writestr("res/xml/network_security_config.xml", NETWORK_CONFIG)
                 archive.writestr("assets/config.txt", "aws_key=AKIAABCDEFGHIJKLMNOP")
 
@@ -63,6 +67,8 @@ class ScanTests(unittest.TestCase):
             self.assertEqual(result.profile.package_name, "com.example.insecure")
             self.assertEqual(result.profile.target_sdk, 30)
             self.assertIn("android.permission.READ_SMS", result.profile.permissions)
+            self.assertTrue(any(item["name"] == "com.squareup.okhttp3:okhttp" for item in result.profile.dependencies))
+            self.assertTrue(any(item["name"] == "libdemo.so" for item in result.profile.dependencies))
             self.assertIn("manifest.debuggable", rule_ids)
             self.assertIn("manifest.exported_component", rule_ids)
             self.assertIn("network.cleartext_config", rule_ids)
@@ -76,6 +82,7 @@ class ScanTests(unittest.TestCase):
             self.assertIn("exploitation_chain", report["findings"][0])
             self.assertIn("evidence_quality", report["findings"][0])
             self.assertIn("references", report["findings"][0])
+            self.assertTrue(any(item["purl"].startswith("pkg:maven/com/squareup/okhttp3/okhttp") for item in report["profile"]["dependencies"]))
 
             html_report = render_html(result)
             self.assertIn("Finding Triage", html_report)

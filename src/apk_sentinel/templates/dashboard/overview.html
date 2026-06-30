@@ -7,6 +7,7 @@
 {% block actions %}
 <div class="actions-stack">
   <a class="button secondary" href="{{ url_for('case_files', case_id=case.id) }}">Open Content</a>
+  <a class="button secondary" href="{{ url_for('case_intelligence', case_id=case.id) }}">Open Intelligence</a>
   <a class="button primary" href="{{ url_for('case_report', case_id=case.id) }}">Build Report</a>
   <a class="button secondary" href="{{ url_for('export_case_archive', case_id=case.id) }}">Export Case</a>
   <form method="post" action="{{ url_for('delete_case', case_id=case.id) }}" onsubmit="return confirm('Delete this stored analysis case? The original APK file is not removed.')">
@@ -22,13 +23,16 @@
     <p class="hash">{{ case.result.profile.sha256 }}</p>
   </div>
   <div class="risk-box">
-    <span>Risk Posture</span>
-    <strong>{{ case.summary.risk_posture }}</strong>
+    <span>Static Posture</span>
+    <strong>{{ case.summary.static_risk_posture }}</strong>
+    <small>Vuln Intel: {{ case.summary.vuln_risk_posture }}</small>
   </div>
 </section>
 
 <section class="stat-grid">
   <div class="stat"><span>Findings</span><strong>{{ case.summary.finding_count }}</strong></div>
+  <div class="stat"><span>Static Signals</span><strong>{{ case.summary.static_signal_count }}</strong></div>
+  <div class="stat"><span>External Vuln Findings</span><strong>{{ case.summary.external_finding_count }}</strong></div>
   <div class="stat"><span>Indicators</span><strong>{{ case.summary.indicator_count }}</strong></div>
   <div class="stat"><span>Captures</span><strong>{{ case.summary.dynamic_capture_count }}</strong></div>
   <div class="stat"><span>Target SDK</span><strong>{{ case.result.profile.target_sdk or 'Unknown' }}</strong></div>
@@ -36,6 +40,8 @@
   <div class="stat"><span>Permissions</span><strong>{{ case.result.profile.permissions|length }}</strong></div>
   <div class="stat"><span>Components</span><strong>{{ case.result.profile.components|length }}</strong></div>
   <div class="stat"><span>Files</span><strong>{{ case.files|length }}</strong></div>
+  <div class="stat"><span>Dependencies</span><strong>{{ case.summary.dependency_count }}</strong></div>
+  <div class="stat"><span>Vuln Matches</span><strong>{{ case.summary.vuln_match_count }}</strong></div>
   <div class="stat"><span>Finding Notes</span><strong>{{ case.summary.noted_finding_count }}</strong></div>
 </section>
 

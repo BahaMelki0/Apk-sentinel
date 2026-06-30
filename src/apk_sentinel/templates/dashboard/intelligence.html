@@ -1,0 +1,61 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Vulnerability Intelligence - APK Sentinel{% endblock %}
+{% block eyebrow %}Static Intelligence{% endblock %}
+{% block heading %}Vulnerability Intelligence{% endblock %}
+
+{% block actions %}
+<form method="post" action="{{ url_for('update_vulnerability_intelligence') }}">
+  <button class="button primary" type="submit">Update OSV Cache</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<section class="stat-grid">
+  <div class="stat"><span>Cases</span><strong>{{ cases|length }}</strong></div>
+  <div class="stat"><span>Discovered Packages</span><strong>{{ dependencies|length }}</strong></div>
+  <div class="stat"><span>Cached Packages</span><strong>{{ package_count }}</strong></div>
+  <div class="stat"><span>Cached Vulns</span><strong>{{ vuln_count }}</strong></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Cache Status</h2>
+      <p class="muted">OSV results are cached locally. Case findings use this cache, so scans remain usable offline.</p>
+    </div>
+  </div>
+  <div class="settings-grid">
+    <div class="setting-card"><span>Updated</span><code>{{ db.updated_at or 'never' }}</code></div>
+    <div class="setting-card"><span>OSV Status</span><strong>{{ db.sources.osv.status }}</strong><p class="muted">{{ db.sources.osv.error or 'No error recorded.' }}</p></div>
+    <div class="setting-card"><span>OSV Updated</span><code>{{ db.sources.osv.updated_at or 'never' }}</code></div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Discovered Package Inventory</h2>
+      <p class="muted">Maven packages with versions can be queried against OSV. Native/framework rows are evidence inventory until deeper fingerprinting lands.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Ecosystem</th><th>Name</th><th>Version</th><th>Confidence</th><th>Evidence</th></tr></thead>
+      <tbody>
+      {% for item in dependencies %}
+        <tr>
+          <td>{{ item.ecosystem }}</td>
+          <td class="path-cell">{{ item.name }}</td>
+          <td>{{ item.version or 'unknown' }}</td>
+          <td>{{ item.confidence }}</td>
+          <td class="path-cell">{{ item.evidence }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty-text">No package inventory found yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

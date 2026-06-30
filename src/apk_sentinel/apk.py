@@ -6,6 +6,7 @@ import zipfile
 from pathlib import Path
 
 from apk_sentinel.axml import AxmlParseError, parse_xml_bytes
+from apk_sentinel.inventory import extract_dependency_inventory
 from apk_sentinel.manifest import parse_manifest_tree
 from apk_sentinel.models import ApkProfile, FileEntry, NetworkSecurityConfig
 
@@ -57,6 +58,7 @@ def read_apk(path: Path) -> ApkProfile:
             and name.upper().endswith((".RSA", ".DSA", ".EC", ".SF"))
         )
         profile.asset_entries = sorted(name for name in names if name.startswith(("assets/", "res/raw/")))
+        profile.dependencies = extract_dependency_inventory(archive)
 
         manifest_error = _load_manifest(profile, archive, names)
         if manifest_error:
@@ -179,4 +181,3 @@ def _local_name(name: str) -> str:
     if "}" in name:
         return name.rsplit("}", 1)[1]
     return name
-

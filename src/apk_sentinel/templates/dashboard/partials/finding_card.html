@@ -3,6 +3,7 @@
     <div>
       <div class="badge-row">
         <span class="badge badge-{{ finding.severity }}">{{ finding.severity }}</span>
+        <span class="badge badge-neutral">{{ finding.finding_type or 'static signal' }}</span>
         <span class="badge badge-exploit">Exploitability: {{ finding.exploitability }}</span>
         <span class="badge badge-neutral">Confidence: {{ finding.confidence or 'medium' }}</span>
       </div>
@@ -23,6 +24,14 @@
       </ol>
     </div>
     <div><strong>Evidence Quality</strong><p>{{ finding.evidence_quality or 'Static signal. Validate in runtime context.' }}</p></div>
+    <div>
+      <strong>MASVS</strong>
+      <div class="reference-row">
+        {% for item in finding.masvs or ['MASVS-CODE'] %}
+        <span class="pill muted-pill">{{ item }}</span>
+        {% endfor %}
+      </div>
+    </div>
     <div><strong>Hardening</strong><p>{{ finding.hardening or finding.recommendation }}</p></div>
     <div>
       <strong>Location</strong>

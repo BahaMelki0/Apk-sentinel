@@ -61,7 +61,21 @@ class DashboardTests(unittest.TestCase):
             overview = client.get(location)
             self.assertEqual(overview.status_code, 200)
             self.assertIn(b"com.example.dashboard", overview.data)
-            self.assertIn(b"Risk Posture", overview.data)
+            self.assertIn(b"Static Posture", overview.data)
+            self.assertIn(b"Vuln Intel: No matches", overview.data)
+            self.assertIn(b"Dependencies", overview.data)
+
+            _write_test_vuln_db(Path(app.config["STORAGE_DIR"]))
+
+            global_intel = client.get("/intelligence")
+            self.assertEqual(global_intel.status_code, 200)
+            self.assertIn(b"Vulnerability Intelligence", global_intel.data)
+            self.assertIn(b"com.squareup.okhttp3:okhttp", global_intel.data)
+
+            case_intel = client.get(f"/cases/{case_id}/intelligence")
+            self.assertEqual(case_intel.status_code, 200)
+            self.assertIn(b"CVE-2026-0001", case_intel.data)
+            self.assertIn(b"Cached Vulnerability Matches", case_intel.data)
 
             settings_page = client.get("/settings")
             self.assertEqual(settings_page.status_code, 200)
@@ -98,6 +112,8 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(save_notes.status_code, 302)
             overview = client.get(location)
             self.assertIn(b"scope: authorized dashboard smoke", overview.data)
+            self.assertIn(b"Vuln Matches", overview.data)
+            self.assertIn(b"External Vuln Findings", overview.data)
 
             files = client.get(f"/cases/{case_id}/files", query_string={"path": "AndroidManifest.xml"})
             self.assertEqual(files.status_code, 200)
@@ -173,6 +189,9 @@ class DashboardTests(unittest.TestCase):
             self.assertIn(b"PoC / References", findings.data)
             self.assertIn(b"Open evidence", findings.data)
             self.assertIn(b"Tester Notes", findings.data)
+            self.assertIn(b"Known vulnerability in com.squareup.okhttp3:okhttp", findings.data)
+            self.assertIn(b"external vuln match", findings.data)
+            self.assertIn(b"MASVS-CODE", findings.data)
 
             key_match = re.search(rb"/cases/[^/]+/findings/([a-f0-9]{16})/notes", findings.data)
             self.assertIsNotNone(key_match)
@@ -221,7 +240,9 @@ class DashboardTests(unittest.TestCase):
             self.assertIn(b"confirmed in manifest", report_export.data)
             self.assertIn(b"table-layout: fixed", report_export.data)
             self.assertIn(b"overflow-wrap: anywhere", report_export.data)
-            self.assertIn(b"proof-table", report_export.data)
+            self.assertIn(b"evidence-card", report_export.data)
+            self.assertIn(b"Vulnerability Intelligence", report_export.data)
+            self.assertIn(b"CVE-2026-0001", report_export.data)
 
             archive_export = client.get(f"/cases/{case_id}/archive")
             self.assertEqual(archive_export.status_code, 200)
@@ -733,11 +754,47 @@ def _apk_bytes() -> bytes:
         archive.writestr("AndroidManifest.xml", DASHBOARD_MANIFEST)
         archive.writestr("classes.dex", b"dex\n035\0")
         archive.writestr(
+            "META-INF/maven/com.squareup.okhttp3/okhttp/pom.properties",
+            b"groupId=com.squareup.okhttp3\nartifactId=okhttp\nversion=4.9.0\n",
+        )
+        archive.writestr(
             "assets/config.json",
             b'{"env":"test","key":"AIzaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","endpoint":"http://api.example.test/v1"}',
         )
     buffer.seek(0)
     return buffer.read()
+
+
+def _write_test_vuln_db(storage: Path) -> None:
+    cache_key = "Maven|com.squareup.okhttp3:okhttp|4.9.0|pkg:maven/com/squareup/okhttp3/okhttp@4.9.0"
+    data = {
+        "schema": 1,
+        "updated_at": "2026-06-30T00:00:00+00:00",
+        "sources": {"osv": {"status": "ok", "updated_at": "2026-06-30T00:00:00+00:00", "error": ""}},
+        "packages": {
+            cache_key: {
+                "source": "OSV",
+                "ecosystem": "Maven",
+                "name": "com.squareup.okhttp3:okhttp",
+                "version": "4.9.0",
+                "purl": "pkg:maven/com/squareup/okhttp3/okhttp@4.9.0",
+                "queried_at": "2026-06-30T00:00:00+00:00",
+                "vulnerabilities": [
+                    {
+                        "id": "CVE-2026-0001",
+                        "aliases": ["CVE-2026-0001"],
+                        "summary": "Test advisory for vulnerable OkHttp package",
+                        "details": "Reachability must be validated before reporting exploitability.",
+                        "severity": "high",
+                        "published": "2026-01-01T00:00:00Z",
+                        "modified": "2026-01-02T00:00:00Z",
+                        "references": [{"type": "ADVISORY", "url": "https://osv.dev/vulnerability/CVE-2026-0001"}],
+                    }
+                ],
+            }
+        },
+    }
+    (storage / "vuln_db.json").write_text(json.dumps(data), encoding="utf-8")
 
 
 def _har_bytes() -> bytes:

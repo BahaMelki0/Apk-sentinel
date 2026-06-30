@@ -16,6 +16,7 @@
       <a class="{{ 'active' if active == 'dashboard' else '' }}" href="{{ url_for('index') }}">Dashboard</a>
       <a class="{{ 'active' if active == 'proxy' else '' }}" href="{{ url_for('proxy_lab') }}">Proxy Lab</a>
       <a class="{{ 'active' if active == 'repeater' else '' }}" href="{{ url_for('proxy_repeater') }}">Repeater</a>
+      <a class="{{ 'active' if active == 'intelligence' and case is not defined else '' }}" href="{{ url_for('vulnerability_intelligence') }}">Vuln Intel</a>
       <a class="{{ 'active' if active == 'settings' else '' }}" href="{{ url_for('settings') }}">Settings</a>
       <a class="{{ 'active' if active == 'about' else '' }}" href="{{ url_for('about') }}">About</a>
       {% if case is defined %}
@@ -24,6 +25,7 @@
       <a class="{{ 'active' if active == 'findings' else '' }}" href="{{ url_for('case_findings', case_id=case.id) }}">Findings</a>
       <a class="{{ 'active' if active == 'permissions' else '' }}" href="{{ url_for('case_permissions', case_id=case.id) }}">Permissions</a>
       <a class="{{ 'active' if active == 'components' else '' }}" href="{{ url_for('case_components', case_id=case.id) }}">Components</a>
+      <a class="{{ 'active' if active == 'intelligence' else '' }}" href="{{ url_for('case_intelligence', case_id=case.id) }}">Intelligence</a>
       <a class="{{ 'active' if active == 'indicators' else '' }}" href="{{ url_for('case_indicators', case_id=case.id) }}">Secrets & Indicators</a>
       <a class="{{ 'active' if active == 'files' else '' }}" href="{{ url_for('case_files', case_id=case.id) }}">Extracted Content</a>
       <a class="{{ 'active' if active == 'dynamic' else '' }}" href="{{ url_for('case_dynamic', case_id=case.id) }}">Dynamic Evidence</a>

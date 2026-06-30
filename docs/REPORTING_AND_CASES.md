@@ -14,8 +14,10 @@ The Report page exports polished HTML. Reports can include:
 
 - Selected findings.
 - Exploitability, confidence, evidence quality, attack path, hardening, and references.
+- MASVS tags and finding type, such as static signal or external vuln match.
 - Case notes and per-finding tester notes.
 - Secrets and indicator proof snippets.
+- Dependency inventory and cached vulnerability intelligence.
 - Proxy capture summaries and replay evidence.
 - Tester name from Settings or the report form.
 
@@ -36,6 +38,6 @@ Use this to separate scanner output from human validation. The finding may still
 2. Review each high-impact finding.
 3. Add per-finding notes for validated issues and false positives.
 4. Select only the findings you want in the final report.
-5. Include indicators and proxy proof when they strengthen the evidence.
+5. Include indicators, vulnerability intelligence, and proxy proof when they strengthen the evidence.
 6. Export HTML for review and delivery.
 7. Export the case archive for reproducibility.

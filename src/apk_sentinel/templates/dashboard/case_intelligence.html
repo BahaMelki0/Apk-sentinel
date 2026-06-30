@@ -1,0 +1,86 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Intelligence - {{ case.result.profile.file_name }}{% endblock %}
+{% block eyebrow %}Static Intelligence{% endblock %}
+{% block heading %}Dependency & Vulnerability Intelligence{% endblock %}
+
+{% block actions %}
+<form method="post" action="{{ url_for('update_case_intelligence', case_id=case.id) }}">
+  <button class="button primary" type="submit">Update OSV For Case</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<section class="stat-grid">
+  <div class="stat"><span>Dependencies</span><strong>{{ case.dependencies|length }}</strong></div>
+  <div class="stat"><span>Vuln Matches</span><strong>{{ case.vuln_matches|length }}</strong></div>
+  <div class="stat"><span>Cache Updated</span><strong>{{ case.vuln_db.updated_at or 'never' }}</strong></div>
+  <div class="stat"><span>External Findings</span><strong>{{ case.summary.external_finding_count }}</strong></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Cached Vulnerability Matches</h2>
+      <p class="muted">These are promoted into Findings as external vulnerability intelligence. Confirm reachability before treating them as exploitable.</p>
+    </div>
+  </div>
+  <div class="indicator-grid">
+    {% for match in case.vuln_matches %}
+    {% set vuln = match.vulnerability %}
+    {% set dep = match.dependency %}
+    <article class="indicator-card severity-{{ vuln.severity }}">
+      <div class="indicator-head">
+        <div>
+          <div class="badge-row">
+            <span class="badge badge-{{ vuln.severity }}">{{ vuln.severity }}</span>
+            <span class="badge badge-exploit">{{ match.source }}</span>
+            <span class="badge badge-neutral">external vuln match</span>
+          </div>
+          <h3>{{ vuln.id }}</h3>
+          <p class="muted">{{ vuln.summary or 'No summary provided by source.' }}</p>
+        </div>
+        <a class="button secondary" href="{{ url_for('case_findings', case_id=case.id) }}">Open Findings</a>
+      </div>
+      <div class="indicator-body">
+        <div><strong>Package</strong><p>{{ dep.name }}@{{ dep.version or 'unknown' }}</p></div>
+        <div><strong>PURL</strong><code>{{ dep.purl or 'n/a' }}</code></div>
+        <div><strong>Evidence</strong><p>{{ dep.evidence }}</p></div>
+        <div><strong>Queried</strong><p>{{ match.queried_at or 'unknown' }}</p></div>
+        <div class="wide"><strong>Details</strong><p>{{ vuln.details or 'Review source advisory for details.' }}</p></div>
+      </div>
+    </article>
+    {% else %}
+    <p class="empty-text">No cached vulnerability matches for this case yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <h2>Dependency Inventory</h2>
+      <p class="muted">Package evidence extracted from APK metadata and fingerprints.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>Ecosystem</th><th>Name</th><th>Version</th><th>Confidence</th><th>Evidence</th></tr></thead>
+      <tbody>
+      {% for item in case.dependencies %}
+        <tr>
+          <td>{{ item.type }}</td>
+          <td>{{ item.ecosystem }}</td>
+          <td class="path-cell">{{ item.name }}</td>
+          <td>{{ item.version or 'unknown' }}</td>
+          <td>{{ item.confidence }}</td>
+          <td class="path-cell">{{ item.evidence }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty-text">No dependency inventory found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -385,6 +385,7 @@ tr:last-child td {
 
 .risk-info,
 .risk-clean,
+.risk-no-matches,
 .badge-info {
   background: var(--gray);
 }
@@ -463,6 +464,13 @@ tr:last-child td {
   display: block;
   margin-top: 4px;
   font-size: 24px;
+}
+
+.risk-box small {
+  display: block;
+  margin-top: 5px;
+  color: #cbd5e1;
+  font-weight: 700;
 }
 
 .stat-grid,
