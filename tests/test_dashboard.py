@@ -235,7 +235,7 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(report_export.mimetype, "text/html")
             self.assertIn(".html", report_export.headers["Content-Disposition"])
             self.assertIn(b"APK Sentinel Case Report", report_export.data)
-            self.assertIn(b"Step-by-step validation chain", report_export.data)
+            self.assertIn(b"Step-by-step Validation Chain", report_export.data)
             self.assertIn(b"Proof Snippets", report_export.data)
             self.assertIn(b"confirmed in manifest", report_export.data)
             self.assertIn(b"table-layout: fixed", report_export.data)

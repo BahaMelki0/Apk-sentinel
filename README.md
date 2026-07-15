@@ -2,7 +2,7 @@
 
 APK Sentinel is a local Android APK security assessment framework for authorized mobile testing. It combines static APK analysis, evidence review, a built-in proxy/interceptor, Repeater-style replay, tester notes, case archives, and polished report export into one Flask dashboard.
 
-## V1.0 Highlights
+## V1.1 Highlights
 
 - Dashboard case workflow for uploading APKs, importing local APKs, deleting cases, and exporting/importing full case archives.
 - Static findings with severity, exploitability, confidence, evidence quality, validation chains, hardening steps, and references.

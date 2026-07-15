@@ -28,6 +28,8 @@ from apk_sentinel.indicators import extract_indicators
 from apk_sentinel.inventory import extract_dependency_inventory
 from apk_sentinel.models import SEVERITY_ORDER
 from apk_sentinel.replay import blank_replay_draft, draft_from_request, replay_raw_http_request
+from apk_sentinel.report_template import BASE_CSS as REPORT_BASE_CSS
+from apk_sentinel.report_template import REPORT_TOOLBAR_HTML, finding_card_html
 from apk_sentinel.tls_ca import ca_status, ensure_ca, export_ca
 from apk_sentinel.vuln_intel import load_vuln_db, match_vulnerabilities, update_osv_cache, vuln_match_to_finding
 
@@ -1735,7 +1737,7 @@ def _render_case_report_html(case: dict, findings: list[dict], options: dict) ->
     generated_at = datetime.now(timezone.utc).isoformat()
     tester = options.get("tester") or "Not specified"
     notes = options.get("notes") or "No tester notes provided."
-    finding_cards = "\n".join(_report_finding_card(finding, index + 1) for index, finding in enumerate(findings))
+    finding_cards = "\n".join(finding_card_html(finding, index + 1) for index, finding in enumerate(findings))
     if not finding_cards:
         finding_cards = '<p class="empty">No findings were selected for this report.</p>'
 
@@ -1755,82 +1757,12 @@ def _render_case_report_html(case: dict, findings: list[dict], options: dict) ->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>APK Sentinel Case Report - {_h(profile.get('file_name'))}</title>
   <style>
-    :root {{
-      color-scheme: light;
-      --page: #f3f5f7;
-      --panel: #fff;
-      --ink: #18212f;
-      --muted: #64707f;
-      --line: #d9e0ea;
-      --teal: #0f766e;
-      --critical: #7f1d1d;
-      --high: #b42318;
-      --medium: #a16207;
-      --low: #1d4ed8;
-      --info: #64748b;
-    }}
-    * {{ box-sizing: border-box; }}
-    body {{ margin: 0; background: var(--page); color: var(--ink); font: 14px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
-    main {{ max-width: 1120px; margin: 0 auto; padding: 28px 18px 48px; }}
-    .hero {{ border-radius: 8px; padding: 24px; background: #111827; color: #f8fafc; }}
-    .hero p {{ color: #cbd5e1; }}
-    h1, h2, h3, p {{ margin-top: 0; }}
-    h1 {{ margin-bottom: 6px; font-size: 30px; overflow-wrap: anywhere; }}
-    h2 {{ margin: 22px 0 12px; font-size: 20px; }}
-    h3 {{ margin-bottom: 8px; font-size: 17px; }}
-    code, pre {{ max-width: 100%; overflow-wrap: anywhere; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }}
-    .meta-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 18px; }}
-    .meta {{ border: 1px solid rgba(255,255,255,.16); border-radius: 8px; padding: 12px; background: rgba(255,255,255,.07); }}
-    .meta span {{ display: block; color: #bfdbfe; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }}
-    .meta strong {{ display: block; margin-top: 5px; overflow-wrap: anywhere; }}
-    .panel, .finding {{ border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }}
-    .panel {{ margin-top: 16px; padding: 18px; }}
-    .finding {{ margin-top: 12px; overflow: hidden; border-left: 7px solid var(--info); }}
-    .finding.critical {{ border-left-color: var(--critical); }}
-    .finding.high {{ border-left-color: var(--high); }}
-    .finding.medium {{ border-left-color: var(--medium); }}
-    .finding.low {{ border-left-color: var(--low); }}
-    .finding.info {{ border-left-color: var(--info); }}
-    .finding-head {{ display: flex; justify-content: space-between; gap: 14px; padding: 16px; border-bottom: 1px solid var(--line); background: #fbfcfe; }}
-    .finding-body {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-    .cell {{ min-width: 0; padding: 14px 16px; border-bottom: 1px solid var(--line); }}
-    .cell:nth-child(odd) {{ border-right: 1px solid var(--line); }}
-    .cell.full {{ grid-column: 1 / -1; border-right: 0; }}
-    .cell strong {{ display: block; margin-bottom: 6px; color: #334155; font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }}
-    .badge-row {{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }}
-    .badge {{ display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 3px 8px; color: #fff; font-size: 11px; font-weight: 850; text-transform: uppercase; }}
-    .badge.critical {{ background: var(--critical); }}
-    .badge.high {{ background: var(--high); }}
-    .badge.medium {{ background: var(--medium); }}
-    .badge.low {{ background: var(--low); }}
-    .badge.info {{ background: var(--info); }}
-    .badge.neutral {{ background: var(--teal); }}
-    .chain {{ margin: 0; padding-left: 20px; }}
-    .chain li {{ margin-bottom: 6px; }}
-    .proof {{ display: block; width: 100%; max-width: 100%; max-height: 320px; margin: 0; overflow: auto; border: 1px solid var(--line); border-left: 5px solid var(--low); border-radius: 8px; padding: 12px; background: #f8fafc; color: #111827; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }}
-    .evidence-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }}
-    .evidence-card {{ min-width: 0; border: 1px solid var(--line); border-left: 6px solid var(--low); border-radius: 8px; background: #fff; overflow: hidden; }}
-    .evidence-card.critical {{ border-left-color: var(--critical); }}
-    .evidence-card.high {{ border-left-color: var(--high); }}
-    .evidence-card.medium {{ border-left-color: var(--medium); }}
-    .evidence-card.low {{ border-left-color: var(--low); }}
-    .evidence-head {{ padding: 12px; border-bottom: 1px solid var(--line); background: #fbfcfe; }}
-    .evidence-head h3 {{ margin-bottom: 4px; overflow-wrap: anywhere; }}
-    .evidence-meta {{ display: grid; gap: 8px; padding: 12px; }}
-    .evidence-meta div {{ min-width: 0; }}
-    .evidence-meta strong {{ display: block; margin-bottom: 3px; color: #334155; font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }}
-    table {{ width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; }}
-    th, td {{ min-width: 0; border-bottom: 1px solid var(--line); padding: 9px; text-align: left; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }}
-    th {{ color: #334155; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }}
-    .proxy-table th:nth-child(1) {{ width: 82px; }}
-    .proxy-table th:nth-child(4) {{ width: 82px; }}
-    a {{ color: #0f766e; }}
-    .muted {{ color: var(--muted); }}
-    @media (max-width: 760px) {{ .finding-head, .finding-body {{ display: block; }} .cell, .cell:nth-child(odd) {{ border-right: 0; }} }}
+{REPORT_BASE_CSS}
   </style>
 </head>
 <body>
 <main>
+  {REPORT_TOOLBAR_HTML}
   <section class="hero">
     <p>APK Sentinel Case Report</p>
     <h1>{_h(profile.get('file_name'))}</h1>
@@ -1860,43 +1792,6 @@ def _render_case_report_html(case: dict, findings: list[dict], options: dict) ->
 </body>
 </html>
 """
-
-
-def _report_finding_card(finding: dict, number: int) -> str:
-    chain = finding.get("exploitation_chain") or [finding.get("attack_path", "Validate in context.")]
-    chain_items = "\n".join(f"<li>{_h(step)}</li>" for step in chain)
-    references = finding.get("references") or []
-    reference_items = " ".join(
-        f'<a href="{_h(item.get("url", ""))}">{_h(item.get("label", "reference"))}</a>' for item in references
-    )
-    if not reference_items:
-        reference_items = "No references attached."
-    hardening = finding.get("hardening") or finding.get("recommendation") or ""
-    return f"""
-<article class="finding {_h(finding.get('severity', 'info'))}">
-  <div class="finding-head">
-    <div>
-      <div class="badge-row">
-        <span class="badge {_h(finding.get('severity', 'info'))}">{_h(finding.get('severity', 'info'))}</span>
-        <span class="badge neutral">Exploitability: {_h(finding.get('exploitability', 'needs validation'))}</span>
-        <span class="badge neutral">Confidence: {_h(finding.get('confidence', 'medium'))}</span>
-      </div>
-      <h3>{number}. {_h(finding.get('title', 'Untitled finding'))}</h3>
-      <p class="muted">{_h(finding.get('description', ''))}</p>
-    </div>
-    <code>{_h(finding.get('rule_id', ''))}</code>
-  </div>
-  <div class="finding-body">
-    <div class="cell"><strong>Impact</strong><p>{_h(finding.get('impact', ''))}</p></div>
-    <div class="cell"><strong>Evidence</strong><p>{_h(finding.get('evidence', ''))}</p></div>
-    <div class="cell full"><strong>Step-by-step validation chain</strong><ol class="chain">{chain_items}</ol></div>
-    <div class="cell"><strong>Evidence quality</strong><p>{_h(finding.get('evidence_quality', ''))}</p></div>
-    <div class="cell"><strong>Hardening</strong><p>{_h(hardening)}</p></div>
-    <div class="cell"><strong>Tester status</strong><p>{_h(finding.get('tester_status', 'open'))}</p></div>
-    <div class="cell"><strong>Tester notes</strong><p>{_h(finding.get('tester_notes') or 'No tester note recorded.')}</p></div>
-    <div class="cell full"><strong>PoC / references</strong><p>{reference_items}</p></div>
-  </div>
-</article>"""
 
 
 def _report_indicator_section(indicators: list[dict]) -> str:

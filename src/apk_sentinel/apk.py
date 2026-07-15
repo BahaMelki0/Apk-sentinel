@@ -9,6 +9,7 @@ from apk_sentinel.axml import AxmlParseError, parse_xml_bytes
 from apk_sentinel.inventory import extract_dependency_inventory
 from apk_sentinel.manifest import parse_manifest_tree
 from apk_sentinel.models import ApkProfile, FileEntry, NetworkSecurityConfig
+from apk_sentinel.secret_patterns import SECRET_ONLY_PATTERNS
 
 TEXT_SCAN_EXTENSIONS = {
     ".json",
@@ -22,13 +23,6 @@ TEXT_SCAN_EXTENSIONS = {
     ".key",
     ".cer",
     ".crt",
-}
-
-SECRET_PATTERNS = {
-    "aws_access_key": re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    "google_api_key": re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
-    "private_key": re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"),
-    "slack_token": re.compile(r"\bxox[baprs]-[0-9A-Za-z-]{10,}\b"),
 }
 
 
@@ -168,9 +162,9 @@ def _scan_text_assets(profile: ApkProfile, archive: zipfile.ZipFile) -> None:
             text = archive.read(name).decode("utf-8", errors="ignore")
         except RuntimeError:
             continue
-        for label, pattern in SECRET_PATTERNS.items():
-            if pattern.search(text):
-                profile.secret_indicators.append({"kind": label, "path": name})
+        for secret_pattern in SECRET_ONLY_PATTERNS:
+            if secret_pattern.pattern.search(text):
+                profile.secret_indicators.append({"kind": secret_pattern.key, "path": name})
 
 
 def _attr(attrs: dict[str, str], name: str) -> str | None:

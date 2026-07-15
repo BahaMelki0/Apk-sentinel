@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import re
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 import xml.etree.ElementTree as ET
 
 from apk_sentinel.axml import AxmlParseError, parse_xml_bytes
+from apk_sentinel.secret_patterns import IGNORED_URL_HOSTS, SECRET_PATTERNS as PATTERNS
+from apk_sentinel.secret_patterns import SecretPattern as IndicatorPattern
+from apk_sentinel.secret_patterns import mask as _mask
+from apk_sentinel.secret_patterns import url_host
 
 MAX_FILE_BYTES = 1024 * 1024
 MAX_INDICATORS = 1000
@@ -29,102 +32,7 @@ TEXT_EXTENSIONS = {
     ".yml",
 }
 
-
-@dataclass(frozen=True)
-class IndicatorPattern:
-    label: str
-    category: str
-    severity: str
-    confidence: str
-    pattern: re.Pattern[str]
-    description: str
-    recommendation: str
-    redact: bool = True
-
-
-PATTERNS = [
-    IndicatorPattern(
-        label="Google API key",
-        category="secret",
-        severity="high",
-        confidence="high",
-        pattern=re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
-        description="Google API key-like value packaged in the APK.",
-        recommendation="Restrict the key by package name and signing certificate, rotate if exposed, and move privileged operations server-side.",
-    ),
-    IndicatorPattern(
-        label="AWS access key ID",
-        category="secret",
-        severity="high",
-        confidence="high",
-        pattern=re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-        description="AWS access key identifier packaged in the APK.",
-        recommendation="Remove the key from client assets, rotate related credentials, and use short-lived server-issued tokens instead.",
-    ),
-    IndicatorPattern(
-        label="Private key block",
-        category="secret",
-        severity="critical",
-        confidence="high",
-        pattern=re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----"),
-        description="Private key material marker found in packaged content.",
-        recommendation="Remove private key material from the app package and rotate any certificate or credential pair that used it.",
-    ),
-    IndicatorPattern(
-        label="Slack token",
-        category="secret",
-        severity="high",
-        confidence="high",
-        pattern=re.compile(r"\bxox[baprs]-[0-9A-Za-z-]{10,}\b"),
-        description="Slack token-like value packaged in the APK.",
-        recommendation="Revoke the token and move Slack/API automation behind a server-side integration.",
-    ),
-    IndicatorPattern(
-        label="Firebase database URL",
-        category="cloud",
-        severity="medium",
-        confidence="high",
-        pattern=re.compile(r"https?://[A-Za-z0-9.-]+\.firebaseio\.com(?:/[^\s\"'<>]*)?"),
-        description="Firebase Realtime Database endpoint found in packaged content.",
-        recommendation="Review Firebase rules, require authentication for sensitive paths, and avoid trusting client-only authorization.",
-        redact=False,
-    ),
-    IndicatorPattern(
-        label="HTTP URL",
-        category="network",
-        severity="medium",
-        confidence="medium",
-        pattern=re.compile(r"\bhttp://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+"),
-        description="Plain HTTP endpoint found in packaged content.",
-        recommendation="Verify whether this endpoint is reachable in production and migrate sensitive traffic to HTTPS.",
-        redact=False,
-    ),
-    IndicatorPattern(
-        label="HTTPS URL",
-        category="network",
-        severity="info",
-        confidence="medium",
-        pattern=re.compile(r"\bhttps://[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+"),
-        description="HTTPS endpoint found in packaged content.",
-        recommendation="Use this as an endpoint inventory seed for proxy testing and backend review.",
-        redact=False,
-    ),
-    IndicatorPattern(
-        label="IPv4 address",
-        category="network",
-        severity="low",
-        confidence="medium",
-        pattern=re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b"),
-        description="IPv4 address found in packaged content.",
-        recommendation="Confirm whether hardcoded IPs are production dependencies and whether TLS hostname validation still applies.",
-        redact=False,
-    ),
-]
-
-IGNORED_URL_HOSTS = {
-    "schemas.android.com",
-    "www.w3.org",
-}
+__all__ = ["IndicatorPattern", "PATTERNS", "extract_indicators", "url_host"]
 
 
 def extract_indicators(apk_path: str | Path) -> list[dict]:
@@ -226,18 +134,6 @@ def _should_skip_match(pattern: IndicatorPattern, match: re.Match[str]) -> bool:
         return False
     host = url_host(match.group(0))
     return host in IGNORED_URL_HOSTS
-
-
-def url_host(value: str) -> str:
-    without_scheme = value.split("://", 1)[-1]
-    return without_scheme.split("/", 1)[0].lower()
-
-
-def _mask(value: str) -> str:
-    compact = value.replace("\n", "\\n")
-    if len(compact) <= 10:
-        return compact[:2] + "..." + compact[-2:]
-    return compact[:6] + "..." + compact[-4:]
 
 
 def _is_candidate(path: str) -> bool:
