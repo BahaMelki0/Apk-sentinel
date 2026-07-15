@@ -17,6 +17,7 @@
   --accent-soft: #e3f5f2;
   --accent-soft-border: #a9e6de;
   --accent-ink: #0b5c53;
+  --accent-contrast: #ffffff;
 
   --nav-bg: #10141b;
   --nav-bg-alt: #171d27;
@@ -88,6 +89,7 @@
     --accent-soft: #12312d;
     --accent-soft-border: #1f5850;
     --accent-ink: #8ff0e2;
+    --accent-contrast: #052420;
 
     --nav-bg: #090b0f;
     --nav-bg-alt: #12161d;
@@ -148,6 +150,7 @@
   --accent-soft: #12312d;
   --accent-soft-border: #1f5850;
   --accent-ink: #8ff0e2;
+  --accent-contrast: #052420;
   --nav-bg: #090b0f;
   --nav-bg-alt: #12161d;
   --nav-line: rgba(255, 255, 255, .06);
@@ -199,6 +202,7 @@
   --accent-soft: #e3f5f2;
   --accent-soft-border: #a9e6de;
   --accent-ink: #0b5c53;
+  --accent-contrast: #ffffff;
   --nav-bg: #10141b;
   --nav-bg-alt: #171d27;
   --nav-line: rgba(255, 255, 255, .08);
@@ -311,24 +315,47 @@ textarea {
   gap: 10px;
   min-height: 42px;
   padding: 0 8px;
-  font-weight: 800;
-  font-size: 14.5px;
-  letter-spacing: -.01em;
   color: var(--nav-ink-strong);
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 9px;
   background: linear-gradient(160deg, var(--accent-strong), var(--accent));
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .08) inset, 0 6px 16px -6px color-mix(in srgb, var(--accent) 70%, transparent);
-  color: #05201c;
-  font-size: 12.5px;
+  color: var(--accent-contrast);
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: -.02em;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand-copy strong,
+.brand-copy small {
+  display: block;
+}
+
+.brand-copy strong {
+  color: var(--nav-ink-strong);
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+}
+
+.brand-copy small {
+  margin-top: 1px;
+  color: var(--nav-muted);
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  line-height: 1.35;
 }
 
 .nav {
@@ -588,8 +615,8 @@ h3 {
 }
 
 .button.primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 108%, white 0%), var(--accent-strong));
-  color: #05221d;
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+  color: var(--accent-contrast);
   box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset, 0 6px 14px -6px color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
@@ -977,7 +1004,7 @@ tbody tr:hover {
 
 .badge-exploit {
   background: var(--accent-strong);
-  color: #052420;
+  color: var(--accent-contrast);
 }
 
 .badge-neutral {

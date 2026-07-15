@@ -42,6 +42,15 @@ DASHBOARD_MANIFEST = """<?xml version="1.0" encoding="utf-8"?>
 
 @unittest.skipIf(create_app is None, f"Flask unavailable: {FLASK_IMPORT_ERROR}")
 class DashboardTests(unittest.TestCase):
+    def test_dashboard_uses_shared_product_brand_signature(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            app = create_app(storage_dir=Path(temp_dir) / "store")
+            app.config.update(TESTING=True)
+            dashboard = app.test_client().get("/")
+            self.assertEqual(dashboard.status_code, 200)
+            self.assertIn(b'brand-copy', dashboard.data)
+            self.assertIn(b'MOBILE APPLICATION SECURITY', dashboard.data)
+
     def test_upload_case_and_preview_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             app = create_app(storage_dir=Path(temp_dir) / "store")
