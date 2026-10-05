@@ -1,0 +1,24 @@
+version: 1
+
+gate:
+  fail_on_severity: critical
+  max_findings:
+    high: 5
+    medium: 20
+
+scoring:
+  minimum_score: 60
+  weights:
+    critical: 30
+    high: 12
+    medium: 5
+    low: 1
+    info: 0
+
+required_tools:
+  - semgrep
+  - gitleaks
+  - trivy-fs
+  - checkov
+
+allowlist: []

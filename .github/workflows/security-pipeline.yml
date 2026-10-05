@@ -1,0 +1,17 @@
+name: SecurePipeline
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    uses: BahaMelki0/Secure-Pipeline/.github/workflows/reusable-security.yml@main
+    with:
+      policy-path: .github/security-policy.yml
+      enable-container-scan: false
+

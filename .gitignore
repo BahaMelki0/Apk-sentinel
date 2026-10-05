@@ -16,3 +16,11 @@ tmp/
 report*.html
 scan*.json
 *.log
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*

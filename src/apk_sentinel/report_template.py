@@ -141,6 +141,8 @@ def finding_card_html(finding: Mapping[str, Any], number: int) -> str:
         extra_cells = (
             f'<div class="cell"><strong>Tester Status</strong><p>{escape(finding.get("tester_status", "open"))}</p></div>'
             f'<div class="cell"><strong>Tester Notes</strong><p>{escape(finding.get("tester_notes") or "No tester note recorded.")}</p></div>'
+            f'<div class="cell"><strong>Reproduction steps</strong><p>{escape(finding.get("reproduction") or "Not recorded")}</p></div>'
+            f'<div class="cell"><strong>Runtime proof reference</strong><p>{escape(finding.get("proof_reference") or "Not recorded")}</p></div>'
         )
     else:
         extra_cells = (

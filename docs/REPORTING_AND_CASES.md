@@ -27,10 +27,15 @@ Each finding has a tester note area with status:
 
 - `open`
 - `reviewed`
+- `confirmed`
 - `accepted risk`
 - `false positive`
 
 Use this to separate scanner output from human validation. The finding may still exist in the scan, but the report will show the tester's status and notes.
+
+Record reproduction steps and a runtime proof reference alongside the status. These fields persist and appear in HTML exports. Confirmed status is a tester decision, not an automatic conclusion from static scanning or local AI.
+
+Validation tool output and URL evidence links are retained in `tool_assessment.json`; JADX source resides in the case's `decompiled/` directory. Full archives may therefore grow substantially and contain additional private source/traffic evidence. See [validation workflow](VALIDATION.md) for comparison, SARIF and runtime-link limits.
 
 ## Suggested V1.0 Report Flow
 

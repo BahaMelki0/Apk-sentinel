@@ -50,6 +50,12 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(dashboard.status_code, 200)
             self.assertIn(b'brand-copy', dashboard.data)
             self.assertIn(b'MOBILE APPLICATION SECURITY', dashboard.data)
+            self.assertIn(b'saved === "light" ? "light" : "dark"', dashboard.data)
+            self.assertIn(b"design-system.css", dashboard.data)
+            theme = app.test_client().get("/static/design-system.css")
+            self.assertEqual(theme.status_code, 200)
+            self.assertIn(b"--brand-accent: #f04452", theme.data)
+            theme.close()
 
     def test_upload_case_and_preview_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -73,6 +79,15 @@ class DashboardTests(unittest.TestCase):
             self.assertIn(b"Static Posture", overview.data)
             self.assertIn(b"Vuln Intel: No matches", overview.data)
             self.assertIn(b"Dependencies", overview.data)
+
+            assessment = client.get(f"/cases/{case_id}/assessment")
+            self.assertEqual(assessment.status_code, 200)
+            refreshed = client.post(f"/cases/{case_id}/assessment", data={"tool": "runtime_links"})
+            self.assertEqual(refreshed.status_code, 200)
+            self.assertIn(b'files_scanned', refreshed.data)
+            exported = client.get(f"/cases/{case_id}/sarif")
+            self.assertEqual(exported.status_code, 200)
+            self.assertEqual(exported.get_json()['version'], '2.1.0')
 
             _write_test_vuln_db(Path(app.config["STORAGE_DIR"]))
 

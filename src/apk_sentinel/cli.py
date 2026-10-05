@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+from dataclasses import asdict
 import sys
 from pathlib import Path
 
@@ -17,6 +19,15 @@ def main(argv: list[str] | None = None) -> int:
         return _scan(args)
     if args.command == "dashboard":
         return _dashboard(args)
+    if args.command == 'compare':
+        from apk_sentinel.assessment import compare_results
+        print(json.dumps(compare_results(asdict(scan_apk(args.before)), asdict(scan_apk(args.after))), indent=2))
+        return 0
+    if args.command == 'verify-signing':
+        from apk_sentinel.external_tools import run_tool
+        result = run_tool('apksigner', args.apk)
+        print(json.dumps(result, indent=2))
+        return 0 if result['status'] == 'verified' else 2
 
     parser.print_help()
     return 2
@@ -34,7 +45,7 @@ def _build_parser() -> argparse.ArgumentParser:
     scan.add_argument("apk", type=Path, help="path to the APK file")
     scan.add_argument(
         "--format",
-        choices=("json", "html"),
+        choices=("json", "html", "sarif"),
         default="json",
         help="report format",
     )
@@ -45,6 +56,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="exit non-zero when a finding at or above this severity exists",
     )
 
+    compare = subparsers.add_parser('compare', help='compare two APK releases of the same package')
+    compare.add_argument('before', type=Path)
+    compare.add_argument('after', type=Path)
+    signing = subparsers.add_parser('verify-signing', help='verify with installed Android apksigner')
+    signing.add_argument('apk', type=Path)
     dashboard = subparsers.add_parser("dashboard", help="run the local Flask dashboard")
     dashboard.add_argument("--host", default="127.0.0.1", help="dashboard bind host")
     dashboard.add_argument("--port", type=int, default=5050, help="dashboard bind port")
@@ -56,6 +72,9 @@ def _build_parser() -> argparse.ArgumentParser:
 def _scan(args: argparse.Namespace) -> int:
     result = scan_apk(args.apk)
     rendered = render_html(result) if args.format == "html" else render_json(result)
+    if args.format == 'sarif':
+        from apk_sentinel.assessment import sarif
+        rendered = json.dumps(sarif(asdict(result)), indent=2)
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

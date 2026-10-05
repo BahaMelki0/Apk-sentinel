@@ -24,6 +24,10 @@ Open `http://127.0.0.1:5050/`.
 9. Build HTML deliverables from Report.
 10. Export a full case archive when the case needs to be moved, backed up, or shared inside an authorized engagement.
 
+## Validation / Compare
+
+Use [Validation / Compare](VALIDATION.md) for optional signing/decompilation tools, release deltas, SARIF export, selected-finding local AI and exact source/runtime URL links. Android tools require separate installations. Guidance and static signals require human validation. The interface uses the shared red/black Obsidian Signal theme, with a light-mode option.
+
 ## Static Intelligence
 
 The Intelligence pages separate local static signals from external vulnerability matches. APK Sentinel extracts package evidence from Maven metadata, Android SDK properties, native library inventory, and common framework fingerprints. Maven package/version entries can be queried against OSV and cached locally.

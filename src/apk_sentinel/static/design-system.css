@@ -1,0 +1,70 @@
+/* Signal Slate shared project tokens, with an accessible light variation. */
+:root {
+  --brand-bg: #090a0d;
+  --brand-surface: #111318;
+  --brand-elevated: #191c22;
+  --brand-border: #2b3039;
+  --brand-text: #f0f1f3;
+  --brand-muted: #9a9faa;
+  --brand-accent: #f04452;
+  --brand-accent-hover: #ff6670;
+  --brand-info: #8abcf0;
+  --brand-warning: #e9bd62;
+  --brand-critical: #f1777d;
+  --brand-success: #65d39b;
+  --brand-sans: Inter, "Segoe UI", system-ui, sans-serif;
+  --brand-mono: "IBM Plex Mono", Consolas, monospace;
+}
+
+:root:not([data-theme="light"]),
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: var(--brand-bg);
+  --panel: var(--brand-surface);
+  --panel-soft: var(--brand-surface);
+  --panel-alt: var(--brand-elevated);
+  --ink: var(--brand-text);
+  --ink-strong: #f5f8fb;
+  --muted: var(--brand-muted);
+  --line: var(--brand-border);
+  --line-soft: #1f2c38;
+  --accent: var(--brand-accent);
+  --accent-strong: var(--brand-accent-hover);
+  --accent-soft: #32171c;
+  --accent-soft-border: #6b2a34;
+  --accent-ink: #ffb4b9;
+  --accent-contrast: #fff7f7;
+  --nav-bg: #080d13;
+  --nav-bg-alt: var(--brand-surface);
+  --nav-muted: var(--brand-muted);
+  --contrast-panel: #090f15;
+  --code-bg: #0a1118;
+  --code-ink: var(--brand-text);
+  --code-border: var(--brand-border);
+  --critical: var(--brand-critical);
+  --high: #f1a76a;
+  --medium: var(--brand-warning);
+  --low: var(--brand-info);
+  --info-tone: var(--brand-muted);
+  --good: var(--brand-success);
+  --success-bg: #123322;
+  --success-ink: var(--brand-success);
+  --danger-bg: #35181d;
+  --danger-border: #64323a;
+  --danger-ink: #ff9ca2;
+  --warning-bg: #332b16;
+  --warning-border: #62532c;
+  --warning-ink: var(--brand-warning);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --accent: #be2535;
+  --accent-strong: #a11d2b;
+  --accent-ink: #8a1c28;
+  --accent-soft: #ffeaed;
+  --accent-soft-border: #eab6bd;
+}
+
+body { font-family: var(--brand-sans); }
+.brand-mark { display:block; width:42px; height:42px; object-fit:contain; border-radius:11px; box-shadow:none; background:transparent; }

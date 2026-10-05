@@ -48,7 +48,7 @@ DEFAULT_SETTINGS = {
     "default_proxy_port": 8088,
 }
 
-FINDING_STATUSES = ["open", "reviewed", "accepted risk", "false positive"]
+FINDING_STATUSES = ["open", "reviewed", "confirmed", "accepted risk", "false positive"]
 
 TEXT_EXTENSIONS = {
     ".cfg",
@@ -490,6 +490,51 @@ def create_app(storage_dir: str | Path | None = None) -> Flask:
         case = _load_case(app.config["STORAGE_DIR"], case_id)
         return render_template("dashboard/overview.html", active="overview", case=case)
 
+    @app.route('/cases/<case_id>/assessment', methods=['GET', 'POST'])
+    def case_assessment(case_id):
+        from apk_sentinel.external_tools import run_tool
+        from apk_sentinel.assessment import compare_results
+        case = _load_case(app.config['STORAGE_DIR'], case_id)
+        artifact = Path(case['dir']) / 'tool_assessment.json'
+        result = json.loads(artifact.read_text(encoding='utf-8')) if artifact.exists() else {}
+        comparison = None
+        if request.method == 'POST':
+            tool = request.form.get('tool')
+            if tool in ('apksigner', 'jadx'):
+                result[tool] = run_tool(tool, Path(case['dir']) / 'app.apk', Path(case['dir']) / 'decompiled')
+                _write_json(artifact, result)
+            elif tool == 'runtime_links':
+                from apk_sentinel.runtime_links import correlate_urls
+                result['runtime_links'] = correlate_urls(Path(case['dir']) / 'decompiled', case['dynamic'].get('captures', []))
+                _write_json(artifact, result)
+            elif tool == 'assistant':
+                from apk_sentinel.assistant import explain_finding
+                finding = next((item for item in case['result']['findings'] if item['key'] == request.form.get('finding')), None)
+                if finding is None:
+                    abort(400)
+                try:
+                    result['assistant'] = explain_finding(finding)
+                    _write_json(artifact, result)
+                except (OSError, ValueError, KeyError) as exc:
+                    flash('Local assistant failed: ' + str(exc)[:300], 'error')
+            elif tool == 'compare':
+                try:
+                    baseline = _load_case(app.config['STORAGE_DIR'], request.form.get('baseline', ''))
+                    comparison = compare_results(baseline['result'], case['result'])
+                except ValueError as exc:
+                    flash(str(exc), 'error')
+            else:
+                abort(400)
+        return render_template('dashboard/assessment.html', case=case, active='assessment', results=result,
+                               comparison=comparison, cases=_list_cases(app.config['STORAGE_DIR']))
+
+    @app.get('/cases/<case_id>/sarif')
+    def case_sarif(case_id):
+        from apk_sentinel.assessment import sarif
+        case = _load_case(app.config['STORAGE_DIR'], case_id)
+        return app.response_class(json.dumps(sarif(case['result']), indent=2), mimetype='application/json',
+                                  headers={'Content-Disposition': 'attachment; filename=apk-sentinel.sarif'})
+
     @app.post("/cases/<case_id>/notes")
     def save_case_notes(case_id: str):
         case = _load_case(app.config["STORAGE_DIR"], case_id)
@@ -590,6 +635,8 @@ def create_app(storage_dir: str | Path | None = None) -> Flask:
         finding_notes[finding_key] = {
             "status": status,
             "notes": request.form.get("notes", "").strip(),
+            'reproduction': request.form.get('reproduction', '')[:10000],
+            'proof_reference': request.form.get('proof_reference', '')[:1000],
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
         notes["updated_at"] = finding_notes[finding_key]["updated_at"]
@@ -1701,6 +1748,8 @@ def _attach_finding_metadata(finding: dict, files: list[dict], notes: dict | Non
     enriched["tester_status"] = finding_note.get("status", "open")
     enriched["tester_notes"] = finding_note.get("notes", "")
     enriched["tester_notes_updated_at"] = finding_note.get("updated_at", "")
+    enriched['reproduction'] = finding_note.get('reproduction', '')
+    enriched['proof_reference'] = finding_note.get('proof_reference', '')
     return enriched
 
 

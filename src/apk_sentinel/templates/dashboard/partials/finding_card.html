@@ -57,7 +57,7 @@
         <div class="finding-note-controls">
           <label>Status
             <select class="select-input" name="status">
-              {% for status in ['open', 'reviewed', 'accepted risk', 'false positive'] %}
+              {% for status in ['open', 'reviewed', 'confirmed', 'accepted risk', 'false positive'] %}
               <option value="{{ status }}" {{ 'selected' if finding.tester_status == status else '' }}>{{ status }}</option>
               {% endfor %}
             </select>
@@ -66,6 +66,8 @@
             <textarea class="textarea-input finding-note-input" name="notes" placeholder="Validation notes, false-positive reason, accepted-risk context">{{ finding.tester_notes }}</textarea>
           </label>
           <button class="button secondary" type="submit">Save Note</button>
+          <label>Reproduction steps<textarea name="reproduction" class="textarea-input">{{ finding.reproduction }}</textarea></label>
+          <label>Runtime proof reference<input name="proof_reference" class="text-input" value="{{ finding.proof_reference }}" placeholder="Capture/session identifier or artifact path"></label>
         </div>
       </form>
     </div>

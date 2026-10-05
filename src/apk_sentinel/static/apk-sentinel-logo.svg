@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 56" role="img" aria-labelledby="title">
+  <title id="title">APK Sentinel</title>
+  <defs><linearGradient id="g" x1="7" y1="5" x2="48" y2="52" gradientUnits="userSpaceOnUse"><stop stop-color="#ff6670"/><stop offset="1" stop-color="#d72e3d"/></linearGradient></defs>
+  <rect x="2" y="2" width="52" height="52" rx="16" fill="#111318" stroke="#2b3039" stroke-width="1.5"/>
+  <path d="M23 11h12a5 5 0 0 1 5 5v24H18V16a5 5 0 0 1 5-5Z" fill="none" stroke="url(#g)" stroke-width="2.6"/>
+  <path d="M18 37h22v3a5 5 0 0 1-5 5H23a5 5 0 0 1-5-5v-3Zm9-21h4m-2 26v1" fill="none" stroke="#9a9faa" stroke-width="2" stroke-linecap="round"/>
+  <path d="m22 29 4 4 9-10" fill="none" stroke="#f0f1f3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="66" y="27" fill="#f0f1f3" font-family="Segoe UI,Arial,sans-serif" font-size="20" font-weight="700" letter-spacing="-.4">APK Sentinel</text>
+  <text x="67" y="43" fill="#9a9faa" font-family="Consolas,monospace" font-size="9" font-weight="600" letter-spacing="1.3">MOBILE APPLICATION SECURITY</text>
+</svg>

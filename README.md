@@ -1,6 +1,10 @@
 # APK Sentinel
 
+Validation / Compare adds optional local apksigner and JADX runs, a bounded local evidence assistant, release comparison, and SARIF export. Finding notes retain confirmed status, reproduction steps, and runtime proof references. Android tools are separate installations; configure `APK_SENTINEL_APKSIGNER` / `APK_SENTINEL_JADX` or add their launchers to PATH. The assistant uses local Ollama and treats static evidence as unverified until a tester confirms it.
+
 APK Sentinel is a local Android APK security assessment framework for authorized mobile testing. It combines static APK analysis, evidence review, a built-in proxy/interceptor, Repeater-style replay, tester notes, case archives, and polished report export into one Flask dashboard.
+
+Its **Obsidian Signal** interface uses graphite surfaces and a shared signal-red accent. Dark mode is the default; the dashboard retains an accessible light-mode toggle.
 
 ## V1.1 Highlights
 
@@ -93,9 +97,16 @@ The Settings page controls the report author and default proxy host/port for new
 
 ## Documentation
 
+Validation / Compare also links exact URLs in locally decompiled Java/Kotlin to captured requests, retaining source file/line and capture/request identifiers. Refresh after changing artifacts. This bounded heuristic does not establish that a specific source line executed; dynamic URL construction is outside its coverage.
+
 - [Dashboard Guide](docs/DASHBOARD.md)
+- [Validation, release comparison and local AI](docs/VALIDATION.md)
 - [Proxy Setup](docs/PROXY_SETUP.md)
 - [Reporting And Cases](docs/REPORTING_AND_CASES.md)
+
+## Verification
+
+Run `python -m unittest discover -s tests -q`. The October 5 implementation pass passed 14 tests. Browser visual review and real signing/JADX/device checks remain manual release gates; synthetic APK fixtures are parser fixtures, not signed/installable apps.
 
 ## Safety Scope
 
